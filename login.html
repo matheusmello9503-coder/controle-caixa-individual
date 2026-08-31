@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Caixa | Entrar</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="tela-login">
+    <div class="cartao-login">
+        <h1>Controle de Caixa Diario</h1>
+
+        <div class="erro" id="msgErro"></div>
+
+        <form id="formLogin">
+            <div class="campo">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" autocomplete="username" required>
+            </div>
+            <div class="campo">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="botao" style="width:100%" id="btnEntrar">Entrar</button>
+        </form>
+
+        <p class="aviso-horario">
+            <a href="#" id="linkEsqueciSenha">Esqueci minha senha</a>
+        </p>
+        <p class="aviso-horario">Acesso da recepcao disponivel apenas das 07h as 19h.</p>
+    </div>
+</div>
+
+<script type="module" src="js/login.js"></script>
+</body>
+</html>

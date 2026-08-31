@@ -1,0 +1,197 @@
+:root {
+    --azul-cerdil: #1b3a7a;
+    --azul-escuro: #12285c;
+    --azul-claro: #e8edf8;
+    --cinza-borda: #d8dde6;
+    --cinza-texto: #4a5266;
+    --verde-ok: #1c8a4b;
+    --vermelho-alerta: #c0362c;
+    --laranja-pendente: #d98c00;
+    --fundo: #f4f6fb;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: var(--fundo);
+    color: #1f2430;
+}
+
+a { color: var(--azul-cerdil); }
+
+/* ---------- Tela de login ---------- */
+.tela-login {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cartao-login {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(18, 40, 92, 0.14);
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+}
+
+.cartao-login img { width: 90px; margin-bottom: 8px; }
+.cartao-login h1 { font-size: 18px; color: var(--azul-escuro); margin: 4px 0 24px; }
+
+.campo { text-align: left; margin-bottom: 16px; }
+.campo label { display: block; font-size: 13px; color: var(--cinza-texto); margin-bottom: 4px; }
+.campo input, .campo select, .campo textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    font-size: 14px;
+}
+.campo input:focus, .campo select:focus, .campo textarea:focus {
+    outline: none;
+    border-color: var(--azul-cerdil);
+}
+
+.botao {
+    background: var(--azul-cerdil);
+    color: #fff;
+    border: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.botao:hover { background: var(--azul-escuro); }
+.botao.secundario { background: #fff; color: var(--azul-cerdil); border: 1px solid var(--azul-cerdil); }
+.botao.perigo { background: var(--vermelho-alerta); }
+.botao.pequeno { padding: 6px 10px; font-size: 12px; }
+.botao:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.erro {
+    background: #fdecea;
+    color: var(--vermelho-alerta);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    display: none;
+}
+.erro.mostrar { display: block; }
+
+.aviso-horario { font-size: 12px; color: var(--cinza-texto); margin-top: 18px; }
+
+/* ---------- Cabecalho comum ---------- */
+.topo {
+    background: var(--azul-cerdil);
+    color: #fff;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.topo .marca { display: flex; align-items: center; gap: 10px; }
+.topo .marca img { height: 32px; }
+.topo .marca span { font-weight: 600; letter-spacing: 0.3px; }
+.topo .usuario-info { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+
+.conteudo { padding: 22px 24px 60px; max-width: 1200px; margin: 0 auto; }
+
+/* ---------- Cartoes de resumo ---------- */
+.grade-resumo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 22px;
+}
+.cartao-resumo {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--cinza-borda);
+}
+.cartao-resumo .rotulo { font-size: 12px; color: var(--cinza-texto); text-transform: uppercase; letter-spacing: 0.4px; }
+.cartao-resumo .valor { font-size: 21px; font-weight: 700; color: var(--azul-escuro); margin-top: 4px; }
+.cartao-resumo .qtd { font-size: 12px; color: var(--cinza-texto); margin-top: 2px; }
+
+/* ---------- Painel / cartao generico ---------- */
+.painel {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid var(--cinza-borda);
+    padding: 18px 20px;
+    margin-bottom: 22px;
+}
+.painel h2 { font-size: 15px; color: var(--azul-escuro); margin: 0 0 14px; }
+
+.form-linha {
+    display: grid;
+    grid-template-columns: 1.6fr 0.8fr 0.9fr 1fr 0.9fr 0.9fr 0.7fr auto;
+    gap: 8px;
+    align-items: end;
+}
+.form-linha .campo { margin-bottom: 0; }
+.check-linha { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--cinza-texto); }
+
+/* ---------- Tabela ---------- */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+    text-align: left;
+    background: var(--azul-claro);
+    color: var(--azul-escuro);
+    padding: 9px 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+tbody td { padding: 8px 10px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; }
+tbody tr:hover { background: #fafbff; }
+.tabela-scroll { overflow-x: auto; }
+
+.selo {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.selo.ok { background: #e4f6ea; color: var(--verde-ok); }
+.selo.pendente { background: #fdf1de; color: var(--laranja-pendente); }
+
+.linha-pendente { background: #fffaf0; }
+
+.rodape-total { font-weight: 700; color: var(--azul-escuro); }
+
+.abas { display: flex; gap: 6px; margin-bottom: 18px; }
+.aba-item {
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    background: #e4e9f5;
+    color: var(--azul-escuro);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+}
+.aba-item.ativa { background: #fff; border: 1px solid var(--cinza-borda); border-bottom: none; }
+
+.linha-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+
+.mensagem-ok { background: #e4f6ea; color: var(--verde-ok); padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; }
+.mensagem-ok.mostrar { display: block; }
+
+.status-fechamento { font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+.status-fechamento.aberto { background: #fdf1de; color: var(--laranja-pendente); }
+.status-fechamento.fechado { background: #e4f6ea; color: var(--verde-ok); }
+
+.linha-exame { align-items: end; padding: 10px; background: #fafbff; border-radius: 8px; border: 1px solid var(--cinza-borda); }
+
+.linha-mesmo-grupo td:first-child { color: #9aa3b8; }
+.linha-mesmo-grupo { border-top: none !important; }
+.linha-inicio-grupo td { border-top: 2px solid var(--cinza-borda); }
+
+@media (max-width: 900px) {
+    .form-linha { grid-template-columns: 1fr 1fr; }
+}

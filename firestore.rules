@@ -1,0 +1,88 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estaLogado() {
+      return request.auth != null;
+    }
+
+    function meuUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function souAdmin() {
+      return estaLogado()
+        && meuUsuario().perfil == 'admin'
+        && meuUsuario().ativo == true;
+    }
+
+    function souRecepcaoAtivo() {
+      return estaLogado()
+        && meuUsuario().perfil == 'recepcao'
+        && meuUsuario().ativo == true;
+    }
+
+    // Campo Grande (MS) fica em UTC-4 o ano todo (nao usa horario de verao).
+    // Este calculo usa o relogio do PROPRIO SERVIDOR do Firebase
+    // (request.time), entao nao pode ser burlado mudando o relogio do
+    // computador ou celular de quem esta usando o sistema.
+    function dentroDoHorarioPermitido() {
+      let deslocamentoMillis = 4 * 60 * 60 * 1000;
+      let localMillis = request.time.toMillis() - deslocamentoMillis;
+      let horaLocal = (localMillis / 3600000) % 24;
+      return horaLocal >= 7 && horaLocal < 19;
+    }
+
+    // ---------- usuarios ----------
+    // Cada pessoa pode ler o proprio cadastro (para o sistema saber seu
+    // perfil). O administrador pode ler, criar, editar e desativar qualquer
+    // cadastro. Ninguem alem do administrador pode criar ou alterar
+    // cadastros, o que impede alguem de se autopromover a administrador.
+    match /usuarios/{usuarioId} {
+      allow read: if estaLogado() && (request.auth.uid == usuarioId || souAdmin());
+      allow create, update, delete: if souAdmin();
+    }
+
+    // ---------- lancamentos (atendimentos) ----------
+    match /lancamentos/{lancamentoId} {
+
+      // Leitura: o administrador ve tudo; a recepcao so ve os proprios
+      // lancamentos (a consulta feita pelo aplicativo ja filtra por
+      // usuarioId, e esta regra garante que ninguem consiga ler o
+      // lancamento de outra pessoa mesmo tentando burlar o aplicativo).
+      allow read: if souAdmin()
+        || (souRecepcaoAtivo() && resource.data.usuarioId == request.auth.uid);
+
+      // Criacao: precisa estar logado, o lancamento tem que ser gravado em
+      // nome de quem esta logado, os campos essenciais precisam ser
+      // validos, e a recepcao so pode lancar dentro do horario permitido
+      // (o administrador nao tem essa restricao).
+      allow create: if estaLogado()
+        && request.resource.data.usuarioId == request.auth.uid
+        && request.resource.data.valor is number
+        && request.resource.data.valor > 0
+        && request.resource.data.formaPagamento in ['Debito', 'Credito', 'Especie', 'Pix']
+        && (souAdmin() || (souRecepcaoAtivo() && dentroDoHorarioPermitido()));
+
+      // Edicao e exclusao: o administrador pode sempre. A recepcao so pode
+      // mexer no proprio lancamento, dentro do horario permitido, e apenas
+      // enquanto o lancamento for recente (ate 20 horas apos criado) - uma
+      // aproximacao segura de "somente lancamentos do dia".
+      allow update, delete: if souAdmin()
+        || (
+          souRecepcaoAtivo()
+          && resource.data.usuarioId == request.auth.uid
+          && dentroDoHorarioPermitido()
+          && request.time.toMillis() - resource.data.criadoEm.toMillis() < 20 * 60 * 60 * 1000
+        );
+    }
+
+    // ---------- fechamentos (fechamento diario de caixa) ----------
+    // Somente o administrador acessa. A recepcao nunca ve totais
+    // consolidados nem os campos de despesas e deposito.
+    match /fechamentos/{data} {
+      allow read, write: if souAdmin();
+    }
+  }
+}

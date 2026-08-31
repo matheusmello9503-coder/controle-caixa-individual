@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fechamento de Caixa | Controle de Caixa</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="topo">
+    <div class="marca"><span>Controle de Caixa - Administrador</span></div>
+    <div class="usuario-info">
+        <span id="nomeUsuario">-</span>
+        <button class="botao secundario pequeno" id="btnSair">Sair</button>
+    </div>
+</div>
+
+<div class="conteudo">
+
+    <div class="abas">
+        <div class="aba-item ativa" data-aba="fechamento">Fechamento do dia</div>
+        <div class="aba-item" data-aba="usuarios">Usuarios</div>
+    </div>
+
+    <div id="abaFechamento">
+        <div class="linha-toolbar">
+            <div class="campo" style="margin-bottom:0">
+                <label>Data</label>
+                <input type="date" id="dataSelecionada">
+            </div>
+            <span class="status-fechamento aberto" id="statusFechamento">Aberto</span>
+        </div>
+
+        <div class="grade-resumo" id="grade-resumo"></div>
+
+        <div class="painel">
+            <h2>Pendencias (sem titulo ou sem tesouraria)</h2>
+            <div class="tabela-scroll">
+                <table>
+                    <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>Tesouraria</th></tr></thead>
+                    <tbody id="corpoPendencias"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="painel">
+            <h2>Totais por atendente</h2>
+            <div class="tabela-scroll">
+                <table>
+                    <thead><tr><th>Atendente</th><th>Quantidade</th><th>Total</th></tr></thead>
+                    <tbody id="corpoAtendentes"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="painel">
+            <h2>Todos os lancamentos do dia</h2>
+            <div class="tabela-scroll">
+                <table>
+                    <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>N&ordm; NF</th><th>Tesouraria</th></tr></thead>
+                    <tbody id="corpoTodos"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="painel">
+            <h2>Fechamento (conferencia final)</h2>
+            <div class="mensagem-ok" id="msgOk"></div>
+            <div class="erro" id="msgErro"></div>
+            <div class="form-linha" style="grid-template-columns: 1fr 2fr 1fr auto auto;">
+                <div class="campo"><label>Despesas (R$)</label><input type="number" id="despesas" step="0.01" min="0"></div>
+                <div class="campo"><label>Observacao das despesas</label><input type="text" id="despesas_obs"></div>
+                <div class="campo"><label>Deposito (R$)</label><input type="number" id="deposito" step="0.01" min="0"></div>
+                <button class="botao secundario" id="btnSalvarFechamento">Salvar</button>
+                <button class="botao" id="btnFecharCaixa">Fechar caixa do dia</button>
+            </div>
+            <div class="campo" style="margin-top:12px">
+                <label>Observacoes gerais</label>
+                <textarea id="observacoes" rows="2"></textarea>
+            </div>
+            <p style="font-size:12px;color:var(--cinza-texto);margin-top:10px">
+                Confira este resumo com o Tasy e com os extratos de Pix e cartao antes de liberar o deposito.
+            </p>
+            <button class="botao secundario pequeno" id="btnReabrir" style="display:none">Reabrir dia</button>
+        </div>
+    </div>
+
+    <div id="abaUsuarios" style="display:none">
+        <div class="painel">
+            <h2>Cadastrar novo usuario</h2>
+            <div class="erro" id="msgErroUsuario"></div>
+            <div class="mensagem-ok" id="msgOkUsuario"></div>
+            <form id="formUsuario" class="form-linha" style="grid-template-columns: 1fr 1fr 1fr 1fr auto;">
+                <div class="campo"><label>Nome</label><input type="text" id="novoNome" required></div>
+                <div class="campo"><label>E-mail</label><input type="email" id="novoEmail" required></div>
+                <div class="campo"><label>Senha inicial</label><input type="password" id="novaSenha" required minlength="6"></div>
+                <div class="campo">
+                    <label>Perfil</label>
+                    <select id="novoPerfil">
+                        <option value="recepcao">Recepcao</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit" class="botao">Cadastrar</button>
+            </form>
+            <p style="font-size:12px;color:var(--cinza-texto);margin-top:6px">
+                Use o e-mail real de cada pessoa: e por ele que a troca de senha (esqueci minha senha) funciona.
+            </p>
+        </div>
+
+        <div class="painel">
+            <h2>Usuarios cadastrados</h2>
+            <div class="tabela-scroll">
+                <table>
+                    <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th></th></tr></thead>
+                    <tbody id="corpoUsuarios"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>

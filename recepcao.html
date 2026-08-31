@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meus Atendimentos | Controle de Caixa</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="topo">
+    <div class="marca"><span>Controle de Caixa</span></div>
+    <div class="usuario-info">
+        <span id="nomeUsuario">-</span>
+        <span id="dataHoje"></span>
+        <button class="botao secundario pequeno" id="btnSair">Sair</button>
+    </div>
+</div>
+
+<div class="conteudo">
+
+    <div class="painel">
+        <h2>Novo atendimento</h2>
+        <p style="font-size:12px;color:var(--cinza-texto);margin:-8px 0 14px">
+            Um paciente com vários exames pagos juntos: preencha os dados do pagamento uma vez e adicione um exame por linha, cada um com seu próprio título.
+        </p>
+        <div class="mensagem-ok" id="msgOk"></div>
+        <div class="erro" id="msgErro"></div>
+
+        <form id="formLancamento">
+            <div class="form-linha" style="grid-template-columns: 1.6fr 0.9fr 1fr 0.7fr; margin-bottom:14px">
+                <div class="campo">
+                    <label>Paciente</label>
+                    <input type="text" id="nome_paciente" required>
+                </div>
+                <div class="campo">
+                    <label>Pagamento</label>
+                    <select id="forma_pagamento" required>
+                        <option value="Debito">Debito</option>
+                        <option value="Credito">Credito</option>
+                        <option value="Especie">Especie</option>
+                        <option value="Pix">Pix</option>
+                    </select>
+                </div>
+                <div class="campo">
+                    <label>N&ordm; NF (do recebimento)</label>
+                    <input type="text" id="numero_nf">
+                </div>
+                <div class="check-linha">
+                    <input type="checkbox" id="tesouraria">
+                    <label for="tesouraria">Tesouraria feita (recebimento inteiro)</label>
+                </div>
+            </div>
+
+            <div id="listaExames"></div>
+
+            <div style="display:flex; gap:10px; align-items:center; margin:10px 0 16px">
+                <button type="button" class="botao secundario pequeno" id="btnAddExame">+ Adicionar outro exame</button>
+                <span id="labelModoEdicao" style="font-size:12px;color:var(--cinza-texto);display:none">Editando um lancamento existente</span>
+            </div>
+
+            <button type="submit" class="botao" id="btnSalvar">Lancar atendimento</button>
+        </form>
+    </div>
+
+    <template id="modeloLinhaExame">
+        <div class="linha-exame form-linha" style="grid-template-columns: 0.9fr 1fr 1.3fr auto; margin-bottom:8px">
+            <div class="campo">
+                <label>Exame</label>
+                <select class="campo-exame" required>
+                    <option value="RM">RM</option>
+                    <option value="TC">TC</option>
+                    <option value="US">US</option>
+                    <option value="RX">RX</option>
+                    <option value="DO">DO</option>
+                    <option value="MMG">MMG</option>
+                    <option value="BIO">BIO</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label>Valor (R$)</label>
+                <input type="number" class="campo-valor" step="0.01" min="0" required>
+            </div>
+            <div class="campo">
+                <label>Titulo (deste exame)</label>
+                <input type="text" class="campo-titulo">
+            </div>
+            <button type="button" class="botao perigo pequeno botao-remover-exame" style="height:38px">Remover</button>
+        </div>
+    </template>
+
+    <div class="painel">
+        <h2 style="margin:0 0 14px">Meus atendimentos de hoje</h2>
+        <div class="tabela-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th>
+                        <th>Titulo</th><th>N&ordm; NF</th><th>Tesouraria</th><th></th>
+                    </tr>
+                </thead>
+                <tbody id="corpoTabela"></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" class="rodape-total">Total do dia</td>
+                        <td class="rodape-total" id="totalDia">R$ 0,00</td>
+                        <td colspan="5"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script type="module" src="js/recepcao.js"></script>
+</body>
+</html>
