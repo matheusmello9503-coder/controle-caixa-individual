@@ -22,17 +22,52 @@ O guia completo de publicacao, passo a passo, esta no documento Word
    Authentication) com os campos `nome`, `email`, `perfil: "admin"`,
    `ativo: true`.
 5. Suba os arquivos para um repositorio no GitHub e ative o GitHub Pages
-   (Settings > Pages > Deploy from branch).
+   (Settings > Pages > Deploy from branch). O site continua hospedado no
+   GitHub Pages; o Firebase e usado apenas como backend (login e banco de
+   dados), nao como hospedagem.
+
+## Perfis de acesso
+
+- **Recepcao** - abre e lanca os atendimentos do dia (tela `recepcao.html`).
+  Sujeita a restricao de horario (07h-19h).
+- **Supervisor** - confere e fecha o caixa consolidado do dia (tela
+  `supervisor.html`): ve todos os lancamentos de todos os atendentes,
+  registra despesas/deposito e fecha o dia. Nao tem acesso ao cadastro de
+  usuarios. Sem restricao de horario.
+- **Administrador** - acesso completo (tela `admin.html`): tudo que o
+  supervisor ve, mais o cadastro, ativacao/desativacao de usuarios de
+  qualquer perfil.
+
+O cadastro de um novo usuario (feito pelo administrador, aba "Usuarios") tem
+um seletor de perfil com as tres opcoes.
 
 ## Estrutura
 
-- `login.html`, `recepcao.html`, `admin.html` - as telas do sistema
+- `login.html`, `recepcao.html`, `supervisor.html`, `admin.html` - as telas
+  do sistema
+- `img/` - logotipo e imagem de fundo da tela de login (marca Cerdil)
 - `js/firebase-config.js` - configuracao do seu projeto Firebase (preencher)
 - `js/firebase-init.js` - inicializa o Firebase (app principal e um app
   secundario, usado so na hora de cadastrar novos usuarios)
-- `js/login.js`, `js/recepcao.js`, `js/admin.js` - logica de cada tela
+- `js/login.js`, `js/recepcao.js`, `js/supervisor.js`, `js/admin.js` -
+  logica de cada tela
 - `firestore.rules` - regras de seguranca: login, perfis e a restricao de
   horario (07h-19h) aplicada pelo servidor do Firebase
+
+## Esqueci minha senha
+
+O link "Esqueci minha senha" da tela de login usa o servico real do
+Firebase Authentication (`sendPasswordResetEmail`): um e-mail de
+redefinicao e enviado de verdade, com um link para a pessoa criar uma nova
+senha. Isso ja funciona sem nenhuma configuracao extra, desde que o metodo
+E-mail/Senha esteja ativado no Firebase Authentication (Console >
+Authentication > Sign-in method) - o que ja e necessario para o login
+funcionar. O remetente padrao e algo como
+`noreply@cerdil-caixa.firebaseapp.com`; o e-mail pode demorar um ou dois
+minutos e, principalmente na primeira vez, pode cair na caixa de Spam/Lixo
+eletronico. Para usar um remetente com a marca Cerdil (em vez do dominio
+padrao do Firebase), e possivel customizar em Authentication > Templates,
+mas isso e opcional.
 
 ## Atendimento com varios exames (mesmo pagamento)
 

@@ -8,28 +8,61 @@
 </head>
 <body>
 <div class="tela-login">
-    <div class="cartao-login">
-        <h1>Controle de Caixa Diario</h1>
 
-        <div class="erro" id="msgErro"></div>
-
-        <form id="formLogin">
-            <div class="campo">
-                <label for="email">E-mail</label>
-                <input type="email" id="email" autocomplete="username" required>
-            </div>
-            <div class="campo">
-                <label for="senha">Senha</label>
-                <input type="password" id="senha" autocomplete="current-password" required>
-            </div>
-            <button type="submit" class="botao" style="width:100%" id="btnEntrar">Entrar</button>
-        </form>
-
-        <p class="aviso-horario">
-            <a href="#" id="linkEsqueciSenha">Esqueci minha senha</a>
-        </p>
-        <p class="aviso-horario">Acesso da recepcao disponivel apenas das 07h as 19h.</p>
+    <div class="login-visual">
+        <div class="login-visual-badge">Cerdil &middot; Diagn&oacute;sticos Avan&ccedil;ados</div>
+        <div class="login-visual-conteudo">
+            <h2>Controle de Caixa Di&aacute;rio</h2>
+            <p>Lan&ccedil;amento de atendimentos, fechamento de caixa e acompanhamento gerencial em um s&oacute; lugar, com registro em tempo real.</p>
+        </div>
     </div>
+
+    <div class="login-painel">
+        <div class="cartao-login">
+            <img src="img/logo-cerdil.png" alt="Cerdil" class="logo-topo">
+            <h1>Acessar o sistema</h1>
+            <p class="subtitulo">Entre com o e-mail e senha cadastrados pelo administrador.</p>
+
+            <div class="erro" id="msgErro"></div>
+
+            <form id="formLogin">
+                <div class="campo">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" autocomplete="username" placeholder="seunome@cerdil.com.br" required>
+                </div>
+                <div class="campo">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" autocomplete="current-password" placeholder="Sua senha" required>
+                </div>
+                <button type="submit" class="botao" style="width:100%" id="btnEntrar">Entrar</button>
+            </form>
+
+            <div class="linha-acoes-login">
+                <a href="#" id="linkEsqueciSenha" class="link-esqueci">Esqueci minha senha</a>
+            </div>
+
+            <p class="aviso-horario">
+                <strong>Recep&ccedil;&atilde;o:</strong> lan&ccedil;amentos dispon&iacute;veis das 07h &agrave;s 19h.<br>
+                Supervisor e administrador acessam sem restri&ccedil;&atilde;o de hor&aacute;rio.
+            </p>
+
+            <div class="perfis-legenda">
+                <div class="perfil-item">
+                    <span class="perfil-pill recepcao"></span>
+                    <span><strong>Recep&ccedil;&atilde;o</strong> &mdash; abre e lan&ccedil;a os atendimentos do dia.</span>
+                </div>
+                <div class="perfil-item">
+                    <span class="perfil-pill supervisor"></span>
+                    <span><strong>Supervisor</strong> &mdash; confere e fecha o caixa consolidado do dia.</span>
+                </div>
+                <div class="perfil-item">
+                    <span class="perfil-pill admin"></span>
+                    <span><strong>Administrador</strong> &mdash; gest&atilde;o completa: usu&aacute;rios, fechamentos e exporta&ccedil;&otilde;es.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script type="module" src="js/login.js"></script>

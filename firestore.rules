@@ -17,6 +17,18 @@ service cloud.firestore {
         && meuUsuario().ativo == true;
     }
 
+    function souSupervisorAtivo() {
+      return estaLogado()
+        && meuUsuario().perfil == 'supervisor'
+        && meuUsuario().ativo == true;
+    }
+
+    // Admin e Supervisor podem ver o fechamento consolidado (todos os
+    // lancamentos do dia, nao so os proprios).
+    function souGerencial() {
+      return souAdmin() || souSupervisorAtivo();
+    }
+
     function souRecepcaoAtivo() {
       return estaLogado()
         && meuUsuario().perfil == 'recepcao'
@@ -37,39 +49,45 @@ service cloud.firestore {
     // ---------- usuarios ----------
     // Cada pessoa pode ler o proprio cadastro (para o sistema saber seu
     // perfil). O administrador pode ler, criar, editar e desativar qualquer
-    // cadastro. Ninguem alem do administrador pode criar ou alterar
-    // cadastros, o que impede alguem de se autopromover a administrador.
+    // cadastro. O supervisor pode ler a lista de usuarios (para saber quem
+    // e quem nos relatorios), mas nao pode criar, editar nem desativar
+    // ninguem - isso e exclusivo do administrador, o que impede alguem de
+    // se autopromover.
     match /usuarios/{usuarioId} {
-      allow read: if estaLogado() && (request.auth.uid == usuarioId || souAdmin());
+      allow read: if estaLogado() && (request.auth.uid == usuarioId || souAdmin() || souSupervisorAtivo());
       allow create, update, delete: if souAdmin();
     }
 
     // ---------- lancamentos (atendimentos) ----------
     match /lancamentos/{lancamentoId} {
 
-      // Leitura: o administrador ve tudo; a recepcao so ve os proprios
-      // lancamentos (a consulta feita pelo aplicativo ja filtra por
-      // usuarioId, e esta regra garante que ninguem consiga ler o
-      // lancamento de outra pessoa mesmo tentando burlar o aplicativo).
-      allow read: if souAdmin()
+      // Leitura: admin e supervisor veem tudo (fechamento consolidado); a
+      // recepcao so ve os proprios lancamentos (a consulta feita pelo
+      // aplicativo ja filtra por usuarioId, e esta regra garante que
+      // ninguem consiga ler o lancamento de outra pessoa mesmo tentando
+      // burlar o aplicativo).
+      allow read: if souGerencial()
         || (souRecepcaoAtivo() && resource.data.usuarioId == request.auth.uid);
 
       // Criacao: precisa estar logado, o lancamento tem que ser gravado em
       // nome de quem esta logado, os campos essenciais precisam ser
       // validos, e a recepcao so pode lancar dentro do horario permitido
-      // (o administrador nao tem essa restricao).
+      // (admin e supervisor nao tem essa restricao).
       allow create: if estaLogado()
         && request.resource.data.usuarioId == request.auth.uid
         && request.resource.data.valor is number
         && request.resource.data.valor > 0
         && request.resource.data.formaPagamento in ['Debito', 'Credito', 'Especie', 'Pix']
-        && (souAdmin() || (souRecepcaoAtivo() && dentroDoHorarioPermitido()));
+        && (souGerencial() || (souRecepcaoAtivo() && dentroDoHorarioPermitido()));
 
-      // Edicao e exclusao: o administrador pode sempre. A recepcao so pode
-      // mexer no proprio lancamento, dentro do horario permitido, e apenas
-      // enquanto o lancamento for recente (ate 20 horas apos criado) - uma
-      // aproximacao segura de "somente lancamentos do dia".
+      // Edicao e exclusao: o administrador pode sempre. O supervisor pode
+      // corrigir qualquer lancamento (parte do fechamento), sem restricao
+      // de horario. A recepcao so pode mexer no proprio lancamento, dentro
+      // do horario permitido, e apenas enquanto o lancamento for recente
+      // (ate 20 horas apos criado) - uma aproximacao segura de "somente
+      // lancamentos do dia".
       allow update, delete: if souAdmin()
+        || souSupervisorAtivo()
         || (
           souRecepcaoAtivo()
           && resource.data.usuarioId == request.auth.uid
@@ -79,10 +97,10 @@ service cloud.firestore {
     }
 
     // ---------- fechamentos (fechamento diario de caixa) ----------
-    // Somente o administrador acessa. A recepcao nunca ve totais
-    // consolidados nem os campos de despesas e deposito.
+    // Administrador e supervisor acessam (fazem o fechamento consolidado,
+    // com despesas e deposito). A recepcao nunca ve isso.
     match /fechamentos/{data} {
-      allow read, write: if souAdmin();
+      allow read, write: if souGerencial();
     }
   }
 }
