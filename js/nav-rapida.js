@@ -1,14 +1,24 @@
 // Menu do usuario no topbar. Mostra nome + cargo, e duas acoes:
-// - "Trocar de perfil": SO para quem e Administrador (unica conta que,
-//   no fluxo atual, precisa alternar entre as 3 visoes do sistema). Leva
-//   para a tela daquele setor, com a MESMA conta logada - nao muda
-//   permissao nenhuma, so troca qual tela/sidebar aparece. Quem e
-//   Supervisor ou Recepcao nao ve essa opcao, porque tem um unico perfil.
+// - "Trocar de perfil": para quem tem mais de UMA tela disponivel. Leva
+//   para a tela escolhida, com a MESMA conta logada - nao muda permissao
+//   nenhuma, so troca qual tela/sidebar aparece.
+//     - Administrador: ve as 3 telas (Administrador, Supervisor, Recepcao).
+//     - Supervisor: ve 2 telas (Fechamento do dia = supervisor.html, e
+//       Meus atendimentos = recepcao.html) - o supervisor tambem lanca
+//       atendimentos avulsos, entao precisa ir e voltar entre as duas.
+//     - Recepcao: tem UMA tela so, entao nao ve essa opcao.
 // - "Sair".
 const TELA_DO_PERFIL = {
     admin: { href: 'admin.html', rotulo: 'Administrador' },
-    supervisor: { href: 'supervisor.html', rotulo: 'Supervisor' },
-    recepcao: { href: 'recepcao.html', rotulo: 'Recepção' }
+    supervisor: { href: 'supervisor.html', rotulo: 'Fechamento do dia' },
+    recepcao: { href: 'recepcao.html', rotulo: 'Meus atendimentos' }
+};
+
+// Quais telas cada perfil pode alternar entre si (alem da propria).
+// Recepcao nao entra aqui porque so tem uma tela.
+const TELAS_DISPONIVEIS_POR_PERFIL = {
+    admin: ['admin', 'supervisor', 'recepcao'],
+    supervisor: ['supervisor', 'recepcao']
 };
 
 const ROTULO_PERFIL = { admin: 'Administrador', supervisor: 'Supervisor', recepcao: 'Recepção' };
@@ -22,17 +32,20 @@ function iniciaisNome(nome) {
 // `perfil` e o cargo real da conta logada (o que decide permissao no
 // servidor). `paginaAtual` e a tela onde o script esta rodando agora
 // ('admin' | 'supervisor' | 'recepcao') - só usada para nao repetir a
-// tela atual dentro do submenu "Trocar de perfil".
+// tela atual dentro do submenu "Ir para".
 export function montarNavRapida({ perfil, nome, paginaAtual }) {
     const alvo = document.getElementById('navRapida');
     if (!alvo) return;
 
-    const podeTrocarDePerfil = perfil === 'admin';
-    const opcoesPerfil = Object.entries(TELA_DO_PERFIL).filter(([chave]) => chave !== paginaAtual);
+    const telasDisponiveis = TELAS_DISPONIVEIS_POR_PERFIL[perfil] || [];
+    const podeTrocarDePerfil = telasDisponiveis.length > 1;
+    const opcoesPerfil = telasDisponiveis
+        .filter((chave) => chave !== paginaAtual)
+        .map((chave) => [chave, TELA_DO_PERFIL[chave]]);
 
     const itemTrocarPerfil = podeTrocarDePerfil ? `
         <div class="nav-rapida-submenu">
-            <div class="nav-rapida-cabecalho">Trocar de perfil</div>
+            <div class="nav-rapida-cabecalho">Ir para</div>
             ${opcoesPerfil.map(([, t]) => `
                 <a href="${t.href}" class="nav-rapida-item">
                     <span class="icone">&#8644;</span> ${t.rotulo}
