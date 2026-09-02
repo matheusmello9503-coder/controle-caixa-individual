@@ -5,6 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { auth, db } from "./firebase-init.js";
 import { FUSO_HORARIO, HORA_INICIO, HORA_FIM } from "./firebase-config.js";
+import { montarNavRapida } from "./nav-rapida.js";
 
 let usuarioAtual = null;
 let cancelarOuvinte = null;
@@ -12,12 +13,6 @@ let ultimaLista = [];
 
 function formatarMoeda(valor) {
     return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function iniciais(nome) {
-    if (!nome) return '-';
-    const partes = nome.trim().split(/\s+/);
-    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
 }
 
 function dataLocalStr() {
@@ -113,20 +108,9 @@ onAuthStateChanged(auth, async (usuario) => {
     // alem do painel administrativo. A recepcao inativa ja foi barrada acima.
 
     usuarioAtual = { uid: usuario.uid, ...perfilDoc.data() };
-    document.getElementById('nomeUsuario').textContent = usuarioAtual.nome;
-    document.getElementById('avatarUsuario').textContent = iniciais(usuarioAtual.nome);
     document.getElementById('dataHoje').textContent = new Date().toLocaleDateString('pt-BR', { timeZone: FUSO_HORARIO });
 
-    const linkPainel = document.getElementById('linkPainelAdmin');
-    if (usuarioAtual.perfil === 'admin') {
-        linkPainel.href = 'admin.html';
-        linkPainel.textContent = 'Painel administrativo';
-        linkPainel.style.display = 'inline-block';
-    } else if (usuarioAtual.perfil === 'supervisor') {
-        linkPainel.href = 'supervisor.html';
-        linkPainel.textContent = 'Fechamento do dia';
-        linkPainel.style.display = 'inline-block';
-    }
+    montarNavRapida({ perfil: usuarioAtual.perfil, nome: usuarioAtual.nome, paginaAtual: 'recepcao' });
 
     atualizarAvisoHorario();
     setInterval(atualizarAvisoHorario, 60000);
@@ -320,8 +304,14 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
     }
 });
 
-document.getElementById('btnSair').addEventListener('click', async () => {
+async function sair() {
     if (cancelarOuvinte) cancelarOuvinte();
     await signOut(auth);
     window.location.href = 'login.html';
-});
+}
+
+// Registrado uma unica vez, em escopo de modulo (nao dentro do
+// onAuthStateChanged, que o Firebase pode disparar mais de uma vez por
+// pagina) - evita acumular listeners duplicados no mesmo evento.
+document.getElementById('btnSair').addEventListener('click', sair);
+document.addEventListener('nav-rapida-sair', sair);

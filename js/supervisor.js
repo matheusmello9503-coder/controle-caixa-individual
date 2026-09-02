@@ -4,18 +4,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { auth, db } from "./firebase-init.js";
 import { FUSO_HORARIO } from "./firebase-config.js";
+import { montarNavRapida } from "./nav-rapida.js";
+import { carregarHistorico, renderizarHistorico } from "./historico.js";
 
 let cancelarOuvinteLancamentos = null;
 let listaDoDia = [];
 
 function formatarMoeda(valor) {
     return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function iniciais(nome) {
-    if (!nome) return '-';
-    const partes = nome.trim().split(/\s+/);
-    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
 }
 
 function hojeInputStr() {
@@ -59,23 +55,68 @@ onAuthStateChanged(auth, async (usuario) => {
         return;
     }
 
-    document.getElementById('nomeUsuario').textContent = perfilDoc.data().nome;
-    document.getElementById('avatarUsuario').textContent = iniciais(perfilDoc.data().nome);
+    montarNavRapida({ perfil, nome: perfilDoc.data().nome, paginaAtual: 'supervisor' });
     document.getElementById('dataSelecionada').value = hojeInputStr();
 
     carregarLancamentosDoDia();
     carregarFechamento();
 });
 
-document.getElementById('btnSair').addEventListener('click', async () => {
+async function sair() {
     if (cancelarOuvinteLancamentos) cancelarOuvinteLancamentos();
     await signOut(auth);
     window.location.href = 'login.html';
-});
+}
+
+// Registrado uma unica vez, em escopo de modulo (nao dentro do
+// onAuthStateChanged, que o Firebase pode disparar mais de uma vez por
+// pagina) - evita acumular listeners duplicados no mesmo evento.
+document.getElementById('btnSair').addEventListener('click', sair);
+document.addEventListener('nav-rapida-sair', sair);
 
 document.getElementById('dataSelecionada').addEventListener('change', () => {
     carregarLancamentosDoDia();
     carregarFechamento();
+});
+
+// ---------- Abas (Fechamento / Historico) ----------
+const tituloAbaEl = document.getElementById('tituloAba');
+const titulosAba = {
+    fechamento: { titulo: 'Fechamento do dia', sub: 'Visao consolidada de todos os atendentes' },
+    historico: { titulo: 'Historico', sub: 'Totais e evolucao dos ultimos dias' }
+};
+document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
+    aba.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-link[data-aba]').forEach(a => a.classList.remove('ativo'));
+        aba.classList.add('ativo');
+        const alvo = aba.dataset.aba;
+        document.getElementById('abaFechamento').style.display = alvo === 'fechamento' ? 'block' : 'none';
+        document.getElementById('abaHistorico').style.display = alvo === 'historico' ? 'block' : 'none';
+        const info = titulosAba[alvo];
+        if (info && tituloAbaEl) {
+            tituloAbaEl.innerHTML = `${info.titulo}<span class="sub">${info.sub}</span>`;
+        }
+        if (alvo === 'historico') atualizarHistorico();
+    });
+});
+
+// ---------- Historico (varios dias) ----------
+let diasHistoricoAtual = 7;
+async function atualizarHistorico() {
+    const dados = await carregarHistorico(diasHistoricoAtual);
+    renderizarHistorico(dados, {
+        idGrade: 'grade-resumo-historico',
+        idGrafico: 'graficoHistorico',
+        idTabela: 'corpoHistorico'
+    });
+}
+document.querySelectorAll('.periodo-botao').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.periodo-botao').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        diasHistoricoAtual = parseInt(btn.dataset.dias, 10);
+        atualizarHistorico();
+    });
 });
 
 // ---------- Lancamentos do dia (tempo real) ----------

@@ -4,6 +4,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { auth, db, authSecundario } from "./firebase-init.js";
 import { FUSO_HORARIO } from "./firebase-config.js";
+import { montarNavRapida } from "./nav-rapida.js";
+import { carregarHistorico, renderizarHistorico } from "./historico.js";
 
 let cancelarOuvinteLancamentos = null;
 let listaDoDia = [];
@@ -30,12 +32,6 @@ function mostrarOk(texto, idEl = 'msgOk') {
     el.textContent = texto;
     el.classList.add('mostrar');
     setTimeout(() => el.classList.remove('mostrar'), 3000);
-}
-
-function iniciais(nome) {
-    if (!nome) return '-';
-    const partes = nome.trim().split(/\s+/);
-    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
 }
 
 function rotuloPerfil(perfil) {
@@ -65,8 +61,7 @@ onAuthStateChanged(auth, async (usuario) => {
         return;
     }
 
-    document.getElementById('nomeUsuario').textContent = perfilDoc.data().nome;
-    document.getElementById('avatarUsuario').textContent = iniciais(perfilDoc.data().nome);
+    montarNavRapida({ perfil: 'admin', nome: perfilDoc.data().nome, paginaAtual: 'admin' });
     document.getElementById('dataSelecionada').value = hojeInputStr();
 
     carregarLancamentosDoDia();
@@ -74,16 +69,23 @@ onAuthStateChanged(auth, async (usuario) => {
     carregarUsuarios();
 });
 
-document.getElementById('btnSair').addEventListener('click', async () => {
+async function sair() {
     if (cancelarOuvinteLancamentos) cancelarOuvinteLancamentos();
     await signOut(auth);
     window.location.href = 'login.html';
-});
+}
+
+// Registrado uma unica vez, em escopo de modulo (nao dentro do
+// onAuthStateChanged, que o Firebase pode disparar mais de uma vez por
+// pagina) - evita acumular listeners duplicados no mesmo evento.
+document.getElementById('btnSair').addEventListener('click', sair);
+document.addEventListener('nav-rapida-sair', sair);
 
 // ---------- Abas (agora como itens da sidebar) ----------
 const tituloAbaEl = document.getElementById('tituloAba');
 const titulosAba = {
     fechamento: { titulo: 'Fechamento do dia', sub: 'Visao consolidada de todos os atendentes' },
+    historico: { titulo: 'Historico', sub: 'Totais e evolucao dos ultimos dias' },
     usuarios: { titulo: 'Usuarios', sub: 'Cadastro e permissoes de acesso ao sistema' }
 };
 
@@ -93,10 +95,14 @@ document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
         aba.classList.add('ativo');
         const alvo = aba.dataset.aba;
         document.getElementById('abaFechamento').style.display = alvo === 'fechamento' ? 'block' : 'none';
+        document.getElementById('abaHistorico').style.display = alvo === 'historico' ? 'block' : 'none';
         document.getElementById('abaUsuarios').style.display = alvo === 'usuarios' ? 'block' : 'none';
         const info = titulosAba[alvo];
         if (info && tituloAbaEl) {
             tituloAbaEl.innerHTML = `${info.titulo}<span class="sub">${info.sub}</span>`;
+        }
+        if (alvo === 'historico') {
+            atualizarHistorico();
         }
     });
 });
@@ -104,6 +110,25 @@ document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
 document.getElementById('dataSelecionada').addEventListener('change', () => {
     carregarLancamentosDoDia();
     carregarFechamento();
+});
+
+// ---------- Historico (varios dias) ----------
+let diasHistoricoAtual = 7;
+async function atualizarHistorico() {
+    const dados = await carregarHistorico(diasHistoricoAtual);
+    renderizarHistorico(dados, {
+        idGrade: 'grade-resumo-historico',
+        idGrafico: 'graficoHistorico',
+        idTabela: 'corpoHistorico'
+    });
+}
+document.querySelectorAll('.periodo-botao').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.periodo-botao').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        diasHistoricoAtual = parseInt(btn.dataset.dias, 10);
+        atualizarHistorico();
+    });
 });
 
 // ---------- Lancamentos do dia (tempo real) ----------
