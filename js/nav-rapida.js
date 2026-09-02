@@ -1,20 +1,14 @@
-// Seletor de navegacao rapida (menu no topbar). Mostra, para o usuario
-// logado, APENAS as telas que o perfil dele ja tem permissao de acessar -
-// nao troca de conta nem de permissao, e um atalho de navegacao. A lista
-// de telas por perfil espelha o que o firestore.rules permite no servidor.
-const TELAS_POR_PERFIL = {
-    admin: [
-        { href: 'admin.html#fechamento', pagina: 'admin', icone: '&#128202;', rotulo: 'Fechamento do dia' },
-        { href: 'admin.html#usuarios', pagina: 'admin', icone: '&#128101;', rotulo: 'Usuários' },
-        { href: 'recepcao.html', pagina: 'recepcao', icone: '&#128203;', rotulo: 'Lançar atendimento' }
-    ],
-    supervisor: [
-        { href: 'supervisor.html', pagina: 'supervisor', icone: '&#128202;', rotulo: 'Fechamento do dia' },
-        { href: 'recepcao.html', pagina: 'recepcao', icone: '&#128203;', rotulo: 'Lançar atendimento' }
-    ],
-    recepcao: [
-        { href: 'recepcao.html', pagina: 'recepcao', icone: '&#128203;', rotulo: 'Lançar atendimento' }
-    ]
+// Menu do usuario no topbar. Mostra nome + cargo, e duas acoes:
+// - "Trocar de perfil": SO para quem e Administrador (unica conta que,
+//   no fluxo atual, precisa alternar entre as 3 visoes do sistema). Leva
+//   para a tela daquele setor, com a MESMA conta logada - nao muda
+//   permissao nenhuma, so troca qual tela/sidebar aparece. Quem e
+//   Supervisor ou Recepcao nao ve essa opcao, porque tem um unico perfil.
+// - "Sair".
+const TELA_DO_PERFIL = {
+    admin: { href: 'admin.html', rotulo: 'Administrador' },
+    supervisor: { href: 'supervisor.html', rotulo: 'Supervisor' },
+    recepcao: { href: 'recepcao.html', rotulo: 'Recepção' }
 };
 
 const ROTULO_PERFIL = { admin: 'Administrador', supervisor: 'Supervisor', recepcao: 'Recepção' };
@@ -25,20 +19,28 @@ function iniciaisNome(nome) {
     return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
 }
 
-// Monta o dropdown de navegacao no topbar. `paginaAtual` identifica a tela
-// onde o script esta rodando ('admin' | 'supervisor' | 'recepcao'), usado
-// so para destacar o item correspondente.
+// `perfil` e o cargo real da conta logada (o que decide permissao no
+// servidor). `paginaAtual` e a tela onde o script esta rodando agora
+// ('admin' | 'supervisor' | 'recepcao') - só usada para nao repetir a
+// tela atual dentro do submenu "Trocar de perfil".
 export function montarNavRapida({ perfil, nome, paginaAtual }) {
     const alvo = document.getElementById('navRapida');
     if (!alvo) return;
 
-    const telas = TELAS_POR_PERFIL[perfil] || TELAS_POR_PERFIL.recepcao;
+    const podeTrocarDePerfil = perfil === 'admin';
+    const opcoesPerfil = Object.entries(TELA_DO_PERFIL).filter(([chave]) => chave !== paginaAtual);
 
-    const itensHtml = telas.map(t => `
-        <a href="${t.href}" class="nav-rapida-item ${t.pagina === paginaAtual ? 'atual' : ''}">
-            <span class="icone">${t.icone}</span> ${t.rotulo}
-        </a>
-    `).join('');
+    const itemTrocarPerfil = podeTrocarDePerfil ? `
+        <div class="nav-rapida-submenu">
+            <div class="nav-rapida-cabecalho">Trocar de perfil</div>
+            ${opcoesPerfil.map(([, t]) => `
+                <a href="${t.href}" class="nav-rapida-item">
+                    <span class="icone">&#8644;</span> ${t.rotulo}
+                </a>
+            `).join('')}
+        </div>
+        <div class="nav-rapida-separador"></div>
+    ` : '';
 
     alvo.innerHTML = `
         <button type="button" class="nav-rapida-toggle" id="navRapidaToggle" aria-expanded="false">
@@ -47,9 +49,7 @@ export function montarNavRapida({ perfil, nome, paginaAtual }) {
             <span class="seta">&#9662;</span>
         </button>
         <div class="nav-rapida-menu" id="navRapidaMenu">
-            <div class="nav-rapida-cabecalho">Navegar para</div>
-            ${itensHtml}
-            <div class="nav-rapida-separador"></div>
+            ${itemTrocarPerfil}
             <button type="button" class="nav-rapida-item" id="navRapidaSair">
                 <span class="icone">&#128682;</span> Sair
             </button>
