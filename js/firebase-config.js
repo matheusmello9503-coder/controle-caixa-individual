@@ -7,7 +7,7 @@
 // do Firestore (arquivo firestore.rules) e o login do Firebase Authentication.
 
 export const configuracaoFirebase = {
-    apiKey: "AIzaSyBhHcA0iz6O7BEASSMfVMLfhXWG2-0bAaI",
+    apiKey: "AIzaSyDDqeli_Uz5GYaBRm_JJ9vnnzoholqBkJY",
     authDomain: "cerdil-caixa.firebaseapp.com",
     projectId: "cerdil-caixa",
     storageBucket: "cerdil-caixa.firebasestorage.app",
