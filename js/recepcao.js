@@ -45,6 +45,7 @@ function mostrarOk(texto) {
 }
 
 function atualizarAvisoHorario() {
+    if (usuarioAtual && usuarioAtual.perfil === 'admin') return;
     const btn = document.getElementById('btnSalvar');
     if (!dentroDoHorario()) {
         btn.disabled = true;
@@ -102,14 +103,16 @@ onAuthStateChanged(auth, async (usuario) => {
         window.location.href = 'login.html';
         return;
     }
-    if (perfilDoc.data().perfil === 'admin') {
-        window.location.href = 'admin.html';
-        return;
-    }
+    // Admin pode usar esta tela tambem (para lancar atendimentos pessoalmente),
+    // alem do painel administrativo. A recepcao inativa ja foi barrada acima.
 
     usuarioAtual = { uid: usuario.uid, ...perfilDoc.data() };
     document.getElementById('nomeUsuario').textContent = usuarioAtual.nome;
     document.getElementById('dataHoje').textContent = new Date().toLocaleDateString('pt-BR', { timeZone: FUSO_HORARIO });
+
+    if (usuarioAtual.perfil === 'admin') {
+        document.getElementById('linkPainelAdmin').style.display = 'inline-block';
+    }
 
     atualizarAvisoHorario();
     setInterval(atualizarAvisoHorario, 60000);
@@ -216,7 +219,7 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
     ev.preventDefault();
     const form = ev.target;
 
-    if (!dentroDoHorario()) {
+    if (usuarioAtual.perfil !== 'admin' && !dentroDoHorario()) {
         mostrarErro('Fora do horario permitido para lancamentos.');
         return;
     }
