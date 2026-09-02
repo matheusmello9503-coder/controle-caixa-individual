@@ -1,8 +1,8 @@
-import { onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-    doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, getDocs
+    doc, getDoc, setDoc, collection, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { auth, db, authSecundario } from "./firebase-init.js";
+import { auth, db } from "./firebase-init.js";
 import { FUSO_HORARIO } from "./firebase-config.js";
 
 let cancelarOuvinteLancamentos = null;
@@ -10,6 +10,12 @@ let listaDoDia = [];
 
 function formatarMoeda(valor) {
     return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function iniciais(nome) {
+    if (!nome) return '-';
+    const partes = nome.trim().split(/\s+/);
+    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
 }
 
 function hojeInputStr() {
@@ -32,18 +38,10 @@ function mostrarOk(texto, idEl = 'msgOk') {
     setTimeout(() => el.classList.remove('mostrar'), 3000);
 }
 
-function iniciais(nome) {
-    if (!nome) return '-';
-    const partes = nome.trim().split(/\s+/);
-    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
-}
-
-function rotuloPerfil(perfil) {
-    const mapa = { admin: 'Administrador', supervisor: 'Supervisor', recepcao: 'Recepcao' };
-    return mapa[perfil] || perfil;
-}
-
 // ---------- Autenticacao ----------
+// O painel de fechamento serve tanto para o perfil supervisor quanto para
+// o admin (que tambem pode conferir o fechamento por aqui). Quem nao for
+// nenhum dos dois volta para a tela de lancamento.
 onAuthStateChanged(auth, async (usuario) => {
     if (!usuario) {
         window.location.href = 'login.html';
@@ -56,11 +54,7 @@ onAuthStateChanged(auth, async (usuario) => {
         return;
     }
     const perfil = perfilDoc.data().perfil;
-    if (perfil === 'supervisor') {
-        window.location.href = 'supervisor.html';
-        return;
-    }
-    if (perfil !== 'admin') {
+    if (perfil !== 'supervisor' && perfil !== 'admin') {
         window.location.href = 'recepcao.html';
         return;
     }
@@ -71,34 +65,12 @@ onAuthStateChanged(auth, async (usuario) => {
 
     carregarLancamentosDoDia();
     carregarFechamento();
-    carregarUsuarios();
 });
 
 document.getElementById('btnSair').addEventListener('click', async () => {
     if (cancelarOuvinteLancamentos) cancelarOuvinteLancamentos();
     await signOut(auth);
     window.location.href = 'login.html';
-});
-
-// ---------- Abas (agora como itens da sidebar) ----------
-const tituloAbaEl = document.getElementById('tituloAba');
-const titulosAba = {
-    fechamento: { titulo: 'Fechamento do dia', sub: 'Visao consolidada de todos os atendentes' },
-    usuarios: { titulo: 'Usuarios', sub: 'Cadastro e permissoes de acesso ao sistema' }
-};
-
-document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
-    aba.addEventListener('click', () => {
-        document.querySelectorAll('.sidebar-link[data-aba]').forEach(a => a.classList.remove('ativo'));
-        aba.classList.add('ativo');
-        const alvo = aba.dataset.aba;
-        document.getElementById('abaFechamento').style.display = alvo === 'fechamento' ? 'block' : 'none';
-        document.getElementById('abaUsuarios').style.display = alvo === 'usuarios' ? 'block' : 'none';
-        const info = titulosAba[alvo];
-        if (info && tituloAbaEl) {
-            tituloAbaEl.innerHTML = `${info.titulo}<span class="sub">${info.sub}</span>`;
-        }
-    });
 });
 
 document.getElementById('dataSelecionada').addEventListener('change', () => {
@@ -249,65 +221,5 @@ document.getElementById('btnReabrir').addEventListener('click', async () => {
         carregarFechamento();
     } catch (e) {
         mostrarErro('Nao foi possivel reabrir: ' + e.message);
-    }
-});
-
-// ---------- Usuarios ----------
-async function carregarUsuarios() {
-    const snap = await getDocs(collection(db, 'usuarios'));
-    const usuarios = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    document.getElementById('corpoUsuarios').innerHTML = usuarios.map(u => `
-        <tr>
-            <td>${u.nome}</td>
-            <td>${u.email || '-'}</td>
-            <td>${rotuloPerfil(u.perfil)}</td>
-            <td>${u.ativo ? '<span class="selo ok">Ativo</span>' : '<span class="selo pendente">Inativo</span>'}</td>
-            <td>
-                <button class="botao secundario pequeno" data-alternar="${u.id}" data-ativo="${u.ativo}">
-                    ${u.ativo ? 'Desativar' : 'Ativar'}
-                </button>
-            </td>
-        </tr>
-    `).join('');
-
-    document.querySelectorAll('[data-alternar]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const ativo = btn.dataset.ativo === 'true';
-            try {
-                await updateDoc(doc(db, 'usuarios', btn.dataset.alternar), { ativo: !ativo });
-                carregarUsuarios();
-            } catch (e) {
-                mostrarErro('Nao foi possivel alterar: ' + e.message, 'msgErroUsuario');
-            }
-        });
-    });
-}
-
-document.getElementById('formUsuario').addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const nome = document.getElementById('novoNome').value.trim();
-    const email = document.getElementById('novoEmail').value.trim();
-    const senha = document.getElementById('novaSenha').value;
-    const perfil = document.getElementById('novoPerfil').value;
-
-    try {
-        // Usa o app secundario para nao derrubar a sessao do administrador
-        const credencial = await createUserWithEmailAndPassword(authSecundario, email, senha);
-        await setDoc(doc(db, 'usuarios', credencial.user.uid), {
-            nome, email, perfil, ativo: true, criadoEm: new Date().toISOString()
-        });
-        await signOut(authSecundario);
-
-        ev.target.reset();
-        mostrarOk('Usuario cadastrado.', 'msgOkUsuario');
-        carregarUsuarios();
-    } catch (e) {
-        const mapa = {
-            'auth/email-already-in-use': 'Ja existe uma conta com esse e-mail.',
-            'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
-            'auth/invalid-email': 'E-mail invalido.'
-        };
-        mostrarErro(mapa[e.code] || ('Nao foi possivel cadastrar: ' + e.message), 'msgErroUsuario');
     }
 });

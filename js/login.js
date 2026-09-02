@@ -4,6 +4,14 @@ import { auth, db } from "./firebase-init.js";
 
 function mostrarErro(texto) {
     const el = document.getElementById('msgErro');
+    el.classList.remove('sucesso');
+    el.textContent = texto;
+    el.classList.add('mostrar');
+}
+
+function mostrarSucesso(texto) {
+    const el = document.getElementById('msgErro');
+    el.classList.add('sucesso');
     el.textContent = texto;
     el.classList.add('mostrar');
 }
@@ -18,7 +26,8 @@ onAuthStateChanged(auth, async (usuario) => {
 });
 
 function redirecionar(perfil) {
-    window.location.href = perfil === 'admin' ? 'admin.html' : 'recepcao.html';
+    const mapa = { admin: 'admin.html', supervisor: 'supervisor.html', recepcao: 'recepcao.html' };
+    window.location.href = mapa[perfil] || 'recepcao.html';
 }
 
 function traduzirErro(codigo) {
@@ -28,9 +37,10 @@ function traduzirErro(codigo) {
         'auth/user-not-found': 'E-mail ou senha invalidos.',
         'auth/wrong-password': 'E-mail ou senha invalidos.',
         'auth/invalid-credential': 'E-mail ou senha invalidos.',
+        'auth/missing-email': 'Digite seu e-mail no campo acima.',
         'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
     };
-    return mapa[codigo] || 'Nao foi possivel entrar. Tente novamente.';
+    return mapa[codigo] || 'Nao foi possivel completar a acao. Tente novamente.';
 }
 
 document.getElementById('formLogin').addEventListener('submit', async (ev) => {
@@ -60,6 +70,15 @@ document.getElementById('formLogin').addEventListener('submit', async (ev) => {
     }
 });
 
+// "Esqueci minha senha" usa o servico real do Firebase Authentication:
+// um e-mail de redefinicao e enviado de verdade (remetente padrao
+// noreply@<projeto>.firebaseapp.com) para a caixa de entrada da pessoa,
+// contendo um link para criar uma nova senha. Nao ha nada para configurar
+// no codigo para isso funcionar - o unico requisito e que o metodo
+// E-mail/Senha esteja ativado no Firebase Authentication (Console >
+// Authentication > Sign-in method), o que ja e necessario para o login
+// funcionar. O e-mail as vezes cai na caixa de Spam/Lixo eletronico,
+// principalmente na primeira vez.
 document.getElementById('linkEsqueciSenha').addEventListener('click', async (ev) => {
     ev.preventDefault();
     const email = document.getElementById('email').value.trim();
@@ -69,9 +88,7 @@ document.getElementById('linkEsqueciSenha').addEventListener('click', async (ev)
     }
     try {
         await sendPasswordResetEmail(auth, email);
-        mostrarErro('Enviamos um e-mail para redefinir sua senha. Confira sua caixa de entrada.');
-        document.getElementById('msgErro').style.background = '#e4f6ea';
-        document.getElementById('msgErro').style.color = '#1c8a4b';
+        mostrarSucesso('Enviamos um e-mail de redefinicao para ' + email + '. Confira a caixa de entrada (e a pasta de Spam) nos proximos minutos.');
     } catch (e) {
         mostrarErro(traduzirErro(e.code));
     }

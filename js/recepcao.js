@@ -14,6 +14,12 @@ function formatarMoeda(valor) {
     return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function iniciais(nome) {
+    if (!nome) return '-';
+    const partes = nome.trim().split(/\s+/);
+    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
+}
+
 function dataLocalStr() {
     const partes = new Intl.DateTimeFormat('en-CA', { timeZone: FUSO_HORARIO, year: 'numeric', month: '2-digit', day: '2-digit' })
         .formatToParts(new Date());
@@ -45,7 +51,7 @@ function mostrarOk(texto) {
 }
 
 function atualizarAvisoHorario() {
-    if (usuarioAtual && usuarioAtual.perfil === 'admin') return;
+    if (usuarioAtual && (usuarioAtual.perfil === 'admin' || usuarioAtual.perfil === 'supervisor')) return;
     const btn = document.getElementById('btnSalvar');
     if (!dentroDoHorario()) {
         btn.disabled = true;
@@ -108,10 +114,18 @@ onAuthStateChanged(auth, async (usuario) => {
 
     usuarioAtual = { uid: usuario.uid, ...perfilDoc.data() };
     document.getElementById('nomeUsuario').textContent = usuarioAtual.nome;
+    document.getElementById('avatarUsuario').textContent = iniciais(usuarioAtual.nome);
     document.getElementById('dataHoje').textContent = new Date().toLocaleDateString('pt-BR', { timeZone: FUSO_HORARIO });
 
+    const linkPainel = document.getElementById('linkPainelAdmin');
     if (usuarioAtual.perfil === 'admin') {
-        document.getElementById('linkPainelAdmin').style.display = 'inline-block';
+        linkPainel.href = 'admin.html';
+        linkPainel.textContent = 'Painel administrativo';
+        linkPainel.style.display = 'inline-block';
+    } else if (usuarioAtual.perfil === 'supervisor') {
+        linkPainel.href = 'supervisor.html';
+        linkPainel.textContent = 'Fechamento do dia';
+        linkPainel.style.display = 'inline-block';
     }
 
     atualizarAvisoHorario();
@@ -219,7 +233,8 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
     ev.preventDefault();
     const form = ev.target;
 
-    if (usuarioAtual.perfil !== 'admin' && !dentroDoHorario()) {
+    const temHorarioLivre = usuarioAtual.perfil === 'admin' || usuarioAtual.perfil === 'supervisor';
+    if (!temHorarioLivre && !dentroDoHorario()) {
         mostrarErro('Fora do horario permitido para lancamentos.');
         return;
     }
