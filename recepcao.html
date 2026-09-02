@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meus Atendimentos | Controle de Caixa</title>
+<title>Meus Atendimentos | Cerdil Caixa</title>
+<link rel="icon" type="image/x-icon" href="img/favicon.ico">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,7 +17,7 @@
     <aside class="sidebar">
         <div class="sidebar-marca">
             <img src="img/icone-cerdil.png" alt="Cerdil">
-            <span>Controle de Caixa</span>
+            <span>Cerdil Caixa</span>
         </div>
         <div class="sidebar-perfil-atual">Recep&ccedil;&atilde;o</div>
         <nav class="sidebar-nav">
@@ -30,11 +34,7 @@
                 <span class="sub" id="dataHoje"></span>
             </div>
             <div class="topbar-usuario">
-                <a href="admin.html" class="botao secundario pequeno" id="linkPainelAdmin" style="display:none">Painel administrativo</a>
-                <div class="usuario-chip">
-                    <span class="usuario-avatar" id="avatarUsuario">-</span>
-                    <span class="usuario-nome" id="nomeUsuario">-</span>
-                </div>
+                <div class="nav-rapida" id="navRapida"></div>
             </div>
         </header>
 
