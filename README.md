@@ -1,4 +1,4 @@
-# Controle de Caixa Diario (versao GitHub Pages + Firebase)
+# Cerdil Caixa (versao GitHub Pages + Firebase)
 
 Versao do sistema hospedada sem servidor proprio: o site (HTML, CSS e JS
 puros, sem build) fica no GitHub Pages, e todo o login, banco de dados e
@@ -41,14 +41,39 @@ O guia completo de publicacao, passo a passo, esta no documento Word
 O cadastro de um novo usuario (feito pelo administrador, aba "Usuarios") tem
 um seletor de perfil com as tres opcoes.
 
+## Navegacao rapida (topbar)
+
+No canto superior direito de cada tela (exceto login), o nome da pessoa
+logada agora e um menu: ao clicar, mostra as telas que aquele perfil ja
+tem permissao de acessar (por exemplo, o administrador ve "Fechamento do
+dia", "Usuarios" e "Lancar atendimento"; a recepcao ve so "Lancar
+atendimento"). E so um atalho de navegacao - clicar num item leva para
+aquela tela com a MESMA conta logada; ninguem consegue "virar" outro
+perfil por ali. As permissoes de verdade continuam sendo aplicadas pelo
+`firestore.rules`, no servidor.
+
+## Historico (dashboard de varios dias)
+
+As telas de administrador e supervisor tem uma aba "Historico", com um
+grafico dos totais dos ultimos 7, 30 ou 90 dias, cartoes de total do
+periodo/media diaria/melhor dia, e uma tabela com o detalhe de cada dia
+(status, quantidade de lancamentos, total, despesas e deposito). Para nao
+ficar lento com o tempo, a consulta busca so os lancamentos do periodo
+selecionado (nao o historico inteiro), usando o campo `data` (formato
+AAAA-MM-DD) com um filtro de intervalo, que o Firestore resolve com um
+indice automatico, sem precisar criar nada manualmente no Console.
+
 ## Estrutura
 
 - `login.html`, `recepcao.html`, `supervisor.html`, `admin.html` - as telas
   do sistema
-- `img/` - logotipo e imagem de fundo da tela de login (marca Cerdil)
+- `img/` - logotipo, favicon e imagem de fundo da tela de login (marca
+  Cerdil), ja otimizados para carregar rapido
 - `js/firebase-config.js` - configuracao do seu projeto Firebase (preencher)
 - `js/firebase-init.js` - inicializa o Firebase (app principal e um app
   secundario, usado so na hora de cadastrar novos usuarios)
+- `js/nav-rapida.js` - monta o menu de navegacao rapida do topbar
+- `js/historico.js` - consulta e desenha o dashboard de varios dias
 - `js/login.js`, `js/recepcao.js`, `js/supervisor.js`, `js/admin.js` -
   logica de cada tela
 - `firestore.rules` - regras de seguranca: login, perfis e a restricao de
@@ -81,6 +106,45 @@ exame). Ao salvar, todos os exames desse atendimento ficam vinculados entre
 si por um identificador de grupo interno, e aparecem visualmente agrupados
 nas tabelas de conferencia. Se precisar corrigir um exame especifico depois,
 a edicao afeta somente aquele exame, sem alterar os demais do mesmo grupo.
+
+## Icone do site (favicon)
+
+Todas as telas ja carregam `img/favicon.ico` e `img/apple-touch-icon.png`,
+gerados a partir do simbolo da marca Cerdil. Ele aparece na aba do
+navegador e, em celulares, como icone ao "adicionar a tela inicial".
+
+## Dominio proprio
+
+Registrar um dominio (por exemplo `cerdilcaixa.com.br`) e so um apontamento
+de DNS para o mesmo GitHub Pages - nao muda nada no funcionamento do
+sistema nem trava futuras edicoes. O fluxo continua sendo o mesmo: editar
+os arquivos, subir para o GitHub, o site atualiza sozinho. Para configurar,
+depois de comprar o dominio no registrador de sua preferencia: adicione um
+arquivo `CNAME` na raiz do repositorio com o dominio escolhido, e crie no
+DNS do registrador um registro `CNAME` apontando para
+`matheusmello9503-coder.github.io` (ou os registros `A` que a documentacao
+do GitHub Pages indica, se preferir usar o dominio raiz sem `www`). O
+GitHub tambem emite certificado HTTPS gratuito para o dominio proprio
+automaticamente, apos a verificacao do DNS.
+
+## Performance
+
+- As imagens da marca (icone da barra lateral, logotipo do login e o fundo
+  da tela de login) foram redimensionadas e comprimidas para o tamanho
+  realmente exibido na tela - o icone da barra lateral, por exemplo, caiu
+  de 156 KB (2362x2362px, exibido a 30px) para 12 KB. Isso reduz bastante o
+  tempo de carregamento em conexoes mais lentas, ja que essas imagens
+  carregam em toda pagina do sistema.
+- As paginas usam `preconnect` para os dominios do Firebase
+  (`gstatic.com`, `firestore.googleapis.com`), o que adianta a conexao
+  segura antes mesmo do script comecar a ser baixado.
+- A aba "Historico" busca so os lancamentos do periodo escolhido (nao o
+  historico inteiro), para continuar rapida mesmo com muitos meses de
+  dados acumulados.
+- Se algum carregamento ainda parecer lento no dia a dia, o motivo mais
+  comum e a conexao de internet do local (o Firebase e o GitHub Pages sao
+  servidos por CDNs globais, entao a demora normalmente esta na rede local
+  ou no roteador/Wi-Fi, nao no sistema em si).
 
 ## Seguranca
 
