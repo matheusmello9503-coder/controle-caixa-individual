@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fechamento de Caixa | Controle de Caixa</title>
+<title>Fechamento de Caixa | Cerdil Caixa</title>
+<link rel="icon" type="image/x-icon" href="img/favicon.ico">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,11 +17,12 @@
     <aside class="sidebar">
         <div class="sidebar-marca">
             <img src="img/icone-cerdil.png" alt="Cerdil">
-            <span>Controle de Caixa</span>
+            <span>Cerdil Caixa</span>
         </div>
         <div class="sidebar-perfil-atual">Supervisor</div>
         <nav class="sidebar-nav">
-            <a href="supervisor.html" class="sidebar-link ativo"><span class="icone">&#128202;</span> Fechamento do dia</a>
+            <button class="sidebar-link ativo" data-aba="fechamento"><span class="icone">&#128202;</span> Fechamento do dia</button>
+            <button class="sidebar-link" data-aba="historico"><span class="icone">&#128200;</span> Hist&oacute;rico</button>
             <a href="recepcao.html" class="sidebar-link"><span class="icone">&#128203;</span> Lan&ccedil;ar atendimento</a>
         </nav>
         <div class="sidebar-rodape">
@@ -27,78 +32,108 @@
 
     <div>
         <header class="topbar">
-            <div class="topbar-titulo">Fechamento do dia
+            <div class="topbar-titulo" id="tituloAba">Fechamento do dia
                 <span class="sub">Vis&atilde;o consolidada de todos os atendentes</span>
             </div>
             <div class="topbar-usuario">
-                <div class="usuario-chip">
-                    <span class="usuario-avatar" id="avatarUsuario">-</span>
-                    <span class="usuario-nome" id="nomeUsuario">-</span>
-                </div>
+                <div class="nav-rapida" id="navRapida"></div>
             </div>
         </header>
 
         <main class="conteudo">
 
-            <div class="linha-toolbar">
-                <div class="campo" style="margin-bottom:0">
-                    <label>Data</label>
-                    <input type="date" id="dataSelecionada">
+            <div id="abaFechamento">
+                <div class="linha-toolbar">
+                    <div class="campo" style="margin-bottom:0">
+                        <label>Data</label>
+                        <input type="date" id="dataSelecionada">
+                    </div>
+                    <span class="status-fechamento aberto" id="statusFechamento">Aberto</span>
                 </div>
-                <span class="status-fechamento aberto" id="statusFechamento">Aberto</span>
+
+                <div class="grade-resumo" id="grade-resumo"></div>
+
+                <div class="painel">
+                    <h2>Pendencias (sem titulo ou sem tesouraria)</h2>
+                    <div class="tabela-scroll">
+                        <table>
+                            <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>Tesouraria</th></tr></thead>
+                            <tbody id="corpoPendencias"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="painel">
+                    <h2>Totais por atendente</h2>
+                    <div class="tabela-scroll">
+                        <table>
+                            <thead><tr><th>Atendente</th><th>Quantidade</th><th>Total</th></tr></thead>
+                            <tbody id="corpoAtendentes"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="painel">
+                    <h2>Todos os lancamentos do dia</h2>
+                    <div class="tabela-scroll">
+                        <table>
+                            <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>N&ordm; NF</th><th>Tesouraria</th></tr></thead>
+                            <tbody id="corpoTodos"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="painel">
+                    <h2>Fechamento (conferencia final)</h2>
+                    <div class="mensagem-ok" id="msgOk"></div>
+                    <div class="erro" id="msgErro"></div>
+                    <div class="form-linha" style="grid-template-columns: 1fr 2fr 1fr auto auto;">
+                        <div class="campo"><label>Despesas (R$)</label><input type="number" id="despesas" step="0.01" min="0"></div>
+                        <div class="campo"><label>Observacao das despesas</label><input type="text" id="despesas_obs"></div>
+                        <div class="campo"><label>Deposito (R$)</label><input type="number" id="deposito" step="0.01" min="0"></div>
+                        <button class="botao secundario" id="btnSalvarFechamento">Salvar</button>
+                        <button class="botao" id="btnFecharCaixa">Fechar caixa do dia</button>
+                    </div>
+                    <div class="campo" style="margin-top:12px">
+                        <label>Observacoes gerais</label>
+                        <textarea id="observacoes" rows="2"></textarea>
+                    </div>
+                    <p class="texto-apoio" style="margin-top:10px">
+                        Confira este resumo com o Tasy e com os extratos de Pix e cartao antes de liberar o deposito.
+                    </p>
+                    <button class="botao secundario pequeno" id="btnReabrir" style="display:none">Reabrir dia</button>
+                </div>
             </div>
 
-            <div class="grade-resumo" id="grade-resumo"></div>
+            <div id="abaHistorico" style="display:none">
+                <div class="historico-toolbar">
+                    <div class="historico-periodo">
+                        <button class="periodo-botao ativo" data-dias="7">7 dias</button>
+                        <button class="periodo-botao" data-dias="30">30 dias</button>
+                        <button class="periodo-botao" data-dias="90">90 dias</button>
+                    </div>
+                </div>
 
-            <div class="painel">
-                <h2>Pendencias (sem titulo ou sem tesouraria)</h2>
-                <div class="tabela-scroll">
-                    <table>
-                        <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>Tesouraria</th></tr></thead>
-                        <tbody id="corpoPendencias"></tbody>
-                    </table>
-                </div>
-            </div>
+                <div class="grade-resumo" id="grade-resumo-historico"></div>
 
-            <div class="painel">
-                <h2>Totais por atendente</h2>
-                <div class="tabela-scroll">
-                    <table>
-                        <thead><tr><th>Atendente</th><th>Quantidade</th><th>Total</th></tr></thead>
-                        <tbody id="corpoAtendentes"></tbody>
-                    </table>
+                <div class="painel">
+                    <h2>Total geral por dia</h2>
+                    <div class="grafico-historico" id="graficoHistorico"></div>
+                    <div class="legenda-grafico">
+                        <span class="legenda-item"><span class="legenda-cor aberto"></span> Caixa aberto</span>
+                        <span class="legenda-item"><span class="legenda-cor fechado"></span> Caixa fechado</span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="painel">
-                <h2>Todos os lancamentos do dia</h2>
-                <div class="tabela-scroll">
-                    <table>
-                        <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>N&ordm; NF</th><th>Tesouraria</th></tr></thead>
-                        <tbody id="corpoTodos"></tbody>
-                    </table>
+                <div class="painel">
+                    <h2>Detalhe por dia</h2>
+                    <div class="tabela-scroll">
+                        <table>
+                            <thead><tr><th>Data</th><th>Status</th><th>Lan&ccedil;amentos</th><th>Total</th><th>Despesas</th><th>Dep&oacute;sito</th></tr></thead>
+                            <tbody id="corpoHistorico"></tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-
-            <div class="painel">
-                <h2>Fechamento (conferencia final)</h2>
-                <div class="mensagem-ok" id="msgOk"></div>
-                <div class="erro" id="msgErro"></div>
-                <div class="form-linha" style="grid-template-columns: 1fr 2fr 1fr auto auto;">
-                    <div class="campo"><label>Despesas (R$)</label><input type="number" id="despesas" step="0.01" min="0"></div>
-                    <div class="campo"><label>Observacao das despesas</label><input type="text" id="despesas_obs"></div>
-                    <div class="campo"><label>Deposito (R$)</label><input type="number" id="deposito" step="0.01" min="0"></div>
-                    <button class="botao secundario" id="btnSalvarFechamento">Salvar</button>
-                    <button class="botao" id="btnFecharCaixa">Fechar caixa do dia</button>
-                </div>
-                <div class="campo" style="margin-top:12px">
-                    <label>Observacoes gerais</label>
-                    <textarea id="observacoes" rows="2"></textarea>
-                </div>
-                <p class="texto-apoio" style="margin-top:10px">
-                    Confira este resumo com o Tasy e com os extratos de Pix e cartao antes de liberar o deposito.
-                </p>
-                <button class="botao secundario pequeno" id="btnReabrir" style="display:none">Reabrir dia</button>
             </div>
 
         </main>
