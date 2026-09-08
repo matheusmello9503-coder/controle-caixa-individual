@@ -151,16 +151,20 @@ function renderizarResumo() {
 
     const totalCartao = mapaFormas.Debito.total + mapaFormas.Credito.total;
 
+    // Hero (Total Geral) primeiro, seguido do detalhamento por forma de
+    // pagamento. "Total Cartao" fica junto por ser uma soma que nao esta
+    // em nenhum outro lugar (Debito + Credito); "Total Especie" e "Total
+    // Pix" foram removidos daqui por serem repeticao exata dos cartoes
+    // "Especie" e "Pix" ao lado - nao acrescentavam nenhuma informacao.
     const grade = document.getElementById('grade-resumo');
     grade.innerHTML = `
+        ${cartaoResumo('Total Geral', totalGeral, listaDoDia.length, true)}
+        <div class="grupo-rotulo">Por forma de pagamento</div>
         ${cartaoResumo('Debito', mapaFormas.Debito.total, mapaFormas.Debito.qtd)}
         ${cartaoResumo('Credito', mapaFormas.Credito.total, mapaFormas.Credito.qtd)}
         ${cartaoResumo('Especie', mapaFormas.Especie.total, mapaFormas.Especie.qtd)}
         ${cartaoResumo('Pix', mapaFormas.Pix.total, mapaFormas.Pix.qtd)}
         ${cartaoResumo('Total Cartao', totalCartao)}
-        ${cartaoResumo('Total Especie', mapaFormas.Especie.total)}
-        ${cartaoResumo('Total Pix', mapaFormas.Pix.total)}
-        ${cartaoResumo('Total Geral', totalGeral, listaDoDia.length, true)}
     `;
 
     const pendencias = listaDoDia.filter(l => !l.titulo || !l.tesouraria);

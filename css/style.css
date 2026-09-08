@@ -235,7 +235,7 @@ h1, h2, h3 { font-family: inherit; }
     color: #fff;
     display: flex;
     flex-direction: column;
-    padding: 22px 16px;
+    padding: 16px 14px;
     position: sticky;
     top: 0;
     height: 100vh;
@@ -245,16 +245,16 @@ h1, h2, h3 { font-family: inherit; }
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 4px 8px 22px;
-    margin-bottom: 14px;
+    padding: 4px 6px 16px;
+    margin-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.sidebar-marca img { height: 30px; filter: brightness(0) invert(1); }
-.sidebar-marca span { font-weight: 700; font-size: 0.92rem; letter-spacing: 0.2px; }
+.sidebar-marca img { height: 26px; filter: brightness(0) invert(1); }
+.sidebar-marca span { font-weight: 700; font-size: 0.88rem; letter-spacing: 0.2px; }
 
 .sidebar-perfil-atual {
     display: inline-block;
-    font-size: 0.66rem;
+    font-size: 0.64rem;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -262,36 +262,61 @@ h1, h2, h3 { font-family: inherit; }
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.12);
     color: #cfe0ff;
-    margin: 0 8px 18px;
+    margin: 0 6px 14px;
     width: fit-content;
 }
 
-.sidebar-nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .sidebar-link {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 10px 12px;
-    border-radius: 9px;
-    color: #c3cfe8;
-    font-size: 0.87rem;
+    gap: 10px;
+    padding: 9px 12px 9px 10px;
+    border-radius: 8px;
+    color: #aebbdb;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     border: none;
+    border-left: 3px solid transparent;
     background: transparent;
     text-align: left;
     width: 100%;
     font-family: inherit;
+    transition: background 0.12s ease, color 0.12s ease;
 }
 .sidebar-link:hover { background: rgba(255, 255, 255, 0.06); color: #fff; text-decoration: none; }
-.sidebar-link.ativo { background: rgba(255, 255, 255, 0.14); color: #fff; }
-.sidebar-link .icone { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
+.sidebar-link.ativo {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-left-color: #6ea0f2;
+}
+.sidebar-link .icone { font-size: 0.95rem; width: 18px; text-align: center; flex-shrink: 0; }
+
+/* Separa, dentro da navegacao, os itens que trocam de ABA (ficam nesta
+   mesma tela) dos que levam para OUTRA tela do sistema - evita a pessoa
+   achar que tudo ali se comporta do mesmo jeito. */
+.sidebar-secao {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6d7db3;
+    padding: 14px 10px 6px;
+}
 
 .sidebar-rodape {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 14px;
-    margin-top: 14px;
+    padding-top: 12px;
+    margin-top: 12px;
 }
+.sidebar-marca-rodape {
+    font-size: 0.68rem;
+    color: #7c8ab8;
+    padding: 0 2px 10px;
+    line-height: 1.5;
+}
+.sidebar-marca-rodape strong { color: #aebbdb; display: block; font-size: 0.7rem; }
 
 .topbar {
     height: var(--topbar-altura);
@@ -377,7 +402,7 @@ h1, h2, h3 { font-family: inherit; }
 .usuario-data { color: var(--cinza-texto-suave); font-size: 0.82rem; }
 
 .conteudo {
-    padding: clamp(18px, 2vw, 30px) clamp(16px, 2.4vw, 36px) 60px;
+    padding: clamp(16px, 1.8vw, 26px) clamp(16px, 2.4vw, 36px) 50px;
     max-width: 1400px;
     width: 100%;
 }
@@ -392,24 +417,67 @@ h1, h2, h3 { font-family: inherit; }
    ===================================================== */
 .grade-resumo {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
-    margin-bottom: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+    min-height: 12px;
+}
+/* Enquanto os cartoes ainda nao chegaram (JS ainda buscando os dados),
+   mostra um aviso discreto em vez de deixar a area em branco parecendo
+   travada. Some sozinho assim que o JS preenche o conteudo. */
+.grade-resumo:empty::before,
+.grafico-historico:empty::before {
+    content: "Carregando...";
+    color: var(--cinza-texto-suave);
+    font-size: 0.85rem;
+    padding: 6px 2px;
 }
 .cartao-resumo {
     background: var(--branco);
-    border-radius: var(--raio);
-    padding: 16px 18px;
+    border-radius: 10px;
+    padding: 13px 16px;
     border: 1px solid var(--cinza-borda);
     box-shadow: var(--sombra);
 }
-.cartao-resumo .rotulo { font-size: 0.78rem; color: var(--cinza-texto-suave); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
-.cartao-resumo .valor { font-size: 1.65rem; font-weight: 700; color: var(--azul-escuro); margin-top: 6px; letter-spacing: -0.2px; }
-.cartao-resumo .qtd { font-size: 0.8rem; color: var(--cinza-texto-suave); margin-top: 3px; }
-.cartao-resumo.destaque { background: linear-gradient(135deg, var(--azul-cerdil), var(--azul-vivo)); border: none; }
-.cartao-resumo.destaque .rotulo { color: #cfe0ff; }
-.cartao-resumo.destaque .valor { color: #fff; }
-.cartao-resumo.destaque .qtd { color: #cfe0ff; }
+.cartao-resumo .rotulo { font-size: 0.72rem; color: var(--cinza-texto-suave); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; white-space: nowrap; }
+.cartao-resumo .valor { font-size: 1.2rem; font-weight: 700; color: var(--azul-escuro); margin-top: 4px; letter-spacing: -0.2px; white-space: nowrap; }
+.cartao-resumo .qtd { font-size: 0.76rem; color: var(--cinza-texto-suave); margin-top: 2px; white-space: nowrap; }
+
+/* Cartao "hero": a UNICA metrica que importa mais que as outras num
+   determinado painel (ex.: Total Geral do dia, Total do periodo no
+   historico). Ocupa a linha toda, com tipografia bem maior, para o olho
+   ir direto nela antes de olhar o detalhamento por forma de pagamento
+   logo abaixo. Os outros cartoes de cada grade ficam no tamanho normal,
+   menor, como detalhamento - nunca disputando destaque com o hero. */
+.cartao-resumo.destaque {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    padding: 18px 22px;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--azul-cerdil), var(--azul-vivo));
+    border: none;
+    box-shadow: 0 4px 16px rgba(18, 40, 92, 0.18);
+}
+.cartao-resumo.destaque .rotulo { color: #cfe0ff; font-size: 0.76rem; }
+.cartao-resumo.destaque .valor { color: #fff; font-size: 2rem; margin-top: 2px; }
+.cartao-resumo.destaque .qtd { color: #cfe0ff; font-size: 0.82rem; margin-top: 0; }
+
+/* Rotulo pequeno para agrupar um conjunto de cartoes dentro de um mesmo
+   painel (ex.: "Por forma de pagamento"), deixando claro que aqueles
+   cartoes menores sao o detalhamento do hero acima. */
+.grupo-rotulo {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--cinza-texto-suave);
+    margin: 6px 2px 0;
+}
 
 /* =====================================================
    PAINEL / CARTAO GENERICO
@@ -419,10 +487,10 @@ h1, h2, h3 { font-family: inherit; }
     border-radius: var(--raio);
     border: 1px solid var(--cinza-borda);
     box-shadow: var(--sombra);
-    padding: 20px 22px;
-    margin-bottom: 22px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
 }
-.painel h2 { font-size: 0.98rem; color: var(--azul-escuro); margin: 0 0 16px; font-weight: 700; }
+.painel h2 { font-size: 0.92rem; color: var(--azul-escuro); margin: 0 0 12px; font-weight: 700; }
 
 .form-linha {
     display: grid;
@@ -436,21 +504,21 @@ h1, h2, h3 { font-family: inherit; }
 /* =====================================================
    TABELA
    ===================================================== */
-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 thead th {
     text-align: left;
     background: var(--azul-claro);
     color: var(--azul-escuro);
-    padding: 11px 12px;
+    padding: 9px 12px;
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.76rem;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     white-space: nowrap;
 }
 thead th:first-child { border-radius: 8px 0 0 8px; }
 thead th:last-child { border-radius: 0 8px 8px 0; }
-tbody td { padding: 10px 12px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; }
+tbody td { padding: 8px 12px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; }
 tbody tr:hover { background: #fafbff; }
 tbody tr:last-child td { border-bottom: none; }
 .tabela-scroll { overflow-x: auto; }

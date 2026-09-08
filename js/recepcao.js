@@ -137,7 +137,21 @@ function iniciarOuvintedeLancamentos() {
     });
 }
 
+function renderizarResumoHero() {
+    const grade = document.getElementById('grade-resumo-recepcao');
+    if (!grade) return;
+    const total = ultimaLista.reduce((s, l) => s + (l.valor || 0), 0);
+    grade.innerHTML = `
+        <div class="cartao-resumo destaque">
+            <div class="rotulo">Total lan&ccedil;ado hoje</div>
+            <div class="valor">${formatarMoeda(total)}</div>
+            <div class="qtd">${ultimaLista.length} lancamento(s)</div>
+        </div>
+    `;
+}
+
 function renderizarTabela() {
+    renderizarResumoHero();
     const corpo = document.getElementById('corpoTabela');
     corpo.innerHTML = '';
     let total = 0;

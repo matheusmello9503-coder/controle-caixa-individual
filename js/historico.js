@@ -106,6 +106,7 @@ export function renderizarHistorico(dados, { idGrade, idGrafico, idTabela }) {
                 <div class="valor">${formatarMoeda(totalPeriodo)}</div>
                 <div class="qtd">${qtdPeriodo} lancamento(s)</div>
             </div>
+            <div class="grupo-rotulo">Neste per&iacute;odo</div>
             <div class="cartao-resumo">
                 <div class="rotulo">M&eacute;dia di&aacute;ria</div>
                 <div class="valor">${formatarMoeda(mediaDiaria)}</div>

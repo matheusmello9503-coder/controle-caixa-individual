@@ -2,7 +2,7 @@ import { onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "htt
 import {
     doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { auth, db, authSecundario } from "./firebase-init.js";
+import { auth, db, obterAuthSecundario } from "./firebase-init.js";
 import { FUSO_HORARIO } from "./firebase-config.js";
 import { montarNavRapida } from "./nav-rapida.js";
 import { carregarHistorico, renderizarHistorico } from "./historico.js";
@@ -64,9 +64,12 @@ onAuthStateChanged(auth, async (usuario) => {
     montarNavRapida({ perfil: 'admin', nome: perfilDoc.data().nome, paginaAtual: 'admin' });
     document.getElementById('dataSelecionada').value = hojeInputStr();
 
+    // So busca lancamentos e fechamento do dia (o que a tela abre mostrando).
+    // Usuarios e Historico ficam para quando a pessoa realmente abrir
+    // aquela aba - evita leituras desnecessarias e deixa a primeira tela
+    // pronta mais rapido.
     carregarLancamentosDoDia();
     carregarFechamento();
-    carregarUsuarios();
 });
 
 async function sair() {
@@ -103,6 +106,9 @@ document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
         }
         if (alvo === 'historico') {
             atualizarHistorico();
+        }
+        if (alvo === 'usuarios') {
+            carregarUsuarios();
         }
     });
 });
@@ -163,16 +169,20 @@ function renderizarResumo() {
 
     const totalCartao = mapaFormas.Debito.total + mapaFormas.Credito.total;
 
+    // Hero (Total Geral) primeiro, seguido do detalhamento por forma de
+    // pagamento. "Total Cartao" fica junto por ser uma soma que nao esta
+    // em nenhum outro lugar (Debito + Credito); "Total Especie" e "Total
+    // Pix" foram removidos daqui por serem repeticao exata dos cartoes
+    // "Especie" e "Pix" ao lado - nao acrescentavam nenhuma informacao.
     const grade = document.getElementById('grade-resumo');
     grade.innerHTML = `
+        ${cartaoResumo('Total Geral', totalGeral, listaDoDia.length, true)}
+        <div class="grupo-rotulo">Por forma de pagamento</div>
         ${cartaoResumo('Debito', mapaFormas.Debito.total, mapaFormas.Debito.qtd)}
         ${cartaoResumo('Credito', mapaFormas.Credito.total, mapaFormas.Credito.qtd)}
         ${cartaoResumo('Especie', mapaFormas.Especie.total, mapaFormas.Especie.qtd)}
         ${cartaoResumo('Pix', mapaFormas.Pix.total, mapaFormas.Pix.qtd)}
         ${cartaoResumo('Total Cartao', totalCartao)}
-        ${cartaoResumo('Total Especie', mapaFormas.Especie.total)}
-        ${cartaoResumo('Total Pix', mapaFormas.Pix.total)}
-        ${cartaoResumo('Total Geral', totalGeral, listaDoDia.length, true)}
     `;
 
     const pendencias = listaDoDia.filter(l => !l.titulo || !l.tesouraria);
@@ -317,7 +327,9 @@ document.getElementById('formUsuario').addEventListener('submit', async (ev) => 
     const perfil = document.getElementById('novoPerfil').value;
 
     try {
-        // Usa o app secundario para nao derrubar a sessao do administrador
+        // Usa o app secundario (criado agora, na hora do uso) para nao
+        // derrubar a sessao do administrador.
+        const authSecundario = obterAuthSecundario();
         const credencial = await createUserWithEmailAndPassword(authSecundario, email, senha);
         await setDoc(doc(db, 'usuarios', credencial.user.uid), {
             nome, email, perfil, ativo: true, criadoEm: new Date().toISOString()
