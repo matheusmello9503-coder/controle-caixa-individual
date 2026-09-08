@@ -9,6 +9,13 @@ import { carregarHistorico, renderizarHistorico } from "./historico.js";
 
 let cancelarOuvinteLancamentos = null;
 let listaDoDia = [];
+// Guarda o total de Especie "pura" (sem Pix) do dia carregado, para poder
+// sugerir o Deposito assim que o documento de fechamento tambem estiver
+// carregado - os dois vem de fontes assincronas diferentes (listener de
+// lancamentos e leitura do fechamento), entao cada um chama
+// atualizarSugestaoDeposito() por conta propria quando termina.
+let ultimoTotalEspeciePura = 0;
+let depositoJaSalvo = false;
 
 function formatarMoeda(valor) {
     return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -114,6 +121,10 @@ document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
 });
 
 document.getElementById('dataSelecionada').addEventListener('change', () => {
+    // Zera antes de trocar de dia: evita, por uma fracao de segundo, mostrar
+    // a sugestao de Deposito calculada com os lancamentos do dia anterior
+    // enquanto os lancamentos do novo dia ainda nao chegaram do Firestore.
+    ultimoTotalEspeciePura = 0;
     carregarLancamentosDoDia();
     carregarFechamento();
 });
@@ -169,21 +180,33 @@ function renderizarResumo() {
 
     const totalCartao = mapaFormas.Debito.total + mapaFormas.Credito.total;
 
+    // O cartao "Especie" mostra Especie + Pix somados, igual ao Tasy (que
+    // lanca o Pix dentro de Especie) - assim o numero bate na hora de
+    // conferir os dois sistemas lado a lado. O cartao "Pix" ao lado mostra
+    // a parte que e so Pix, para quem quiser ver o detalhe. O calculo do
+    // Deposito (mais abaixo) usa a Especie PURA (sem Pix), guardada em
+    // ultimoTotalEspeciePura - e a mesma conta que voces ja fazem por fora
+    // (Especie do Tasy menos o Pix), so que automatica.
+    const especieComPix = mapaFormas.Especie.total + mapaFormas.Pix.total;
+    const especieComPixQtd = mapaFormas.Especie.qtd + mapaFormas.Pix.qtd;
+    ultimoTotalEspeciePura = mapaFormas.Especie.total;
+
     // Hero (Total Geral) primeiro, seguido do detalhamento por forma de
     // pagamento. "Total Cartao" fica junto por ser uma soma que nao esta
-    // em nenhum outro lugar (Debito + Credito); "Total Especie" e "Total
-    // Pix" foram removidos daqui por serem repeticao exata dos cartoes
-    // "Especie" e "Pix" ao lado - nao acrescentavam nenhuma informacao.
+    // em nenhum outro lugar (Debito + Credito); "Total Pix" foi removido
+    // daqui por ser repeticao exata do cartao "Pix" ao lado.
     const grade = document.getElementById('grade-resumo');
     grade.innerHTML = `
         ${cartaoResumo('Total Geral', totalGeral, listaDoDia.length, true)}
         <div class="grupo-rotulo">Por forma de pagamento</div>
         ${cartaoResumo('Debito', mapaFormas.Debito.total, mapaFormas.Debito.qtd)}
         ${cartaoResumo('Credito', mapaFormas.Credito.total, mapaFormas.Credito.qtd)}
-        ${cartaoResumo('Especie', mapaFormas.Especie.total, mapaFormas.Especie.qtd)}
+        ${cartaoResumo('Especie (+ Pix)', especieComPix, especieComPixQtd)}
         ${cartaoResumo('Pix', mapaFormas.Pix.total, mapaFormas.Pix.qtd)}
         ${cartaoResumo('Total Cartao', totalCartao)}
     `;
+
+    atualizarSugestaoDeposito();
 
     const pendencias = listaDoDia.filter(l => !l.titulo || !l.tesouraria);
     document.getElementById('corpoPendencias').innerHTML = pendencias.length
@@ -226,6 +249,19 @@ function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
 }
 
 // ---------- Fechamento diario ----------
+// Sugere o Deposito automaticamente (Especie pura, sem Pix - a mesma
+// conta que ja era feita manualmente por fora) enquanto ninguem tiver
+// salvo um valor de Deposito para este dia ainda. Assim que existir um
+// valor salvo (mesmo que seja zero), ou o dia estiver fechado, o sistema
+// nunca mais sobrescreve sozinho - quem fecha o caixa sempre pode ajustar
+// manualmente antes de salvar/fechar.
+let caixaDoDiaFechado = false;
+
+function atualizarSugestaoDeposito() {
+    if (depositoJaSalvo || caixaDoDiaFechado) return;
+    document.getElementById('deposito').value = ultimoTotalEspeciePura.toFixed(2);
+}
+
 async function carregarFechamento() {
     const data = document.getElementById('dataSelecionada').value;
     const refFechamento = doc(db, 'fechamentos', data);
@@ -234,10 +270,18 @@ async function carregarFechamento() {
 
     document.getElementById('despesas').value = fechamento.despesas || '';
     document.getElementById('despesas_obs').value = fechamento.despesasObs || '';
-    document.getElementById('deposito').value = fechamento.deposito ?? '';
     document.getElementById('observacoes').value = fechamento.observacoes || '';
 
     const status = fechamento.status || 'aberto';
+    caixaDoDiaFechado = status === 'fechado';
+
+    depositoJaSalvo = fechamento.deposito != null;
+    if (depositoJaSalvo) {
+        document.getElementById('deposito').value = fechamento.deposito;
+    } else {
+        atualizarSugestaoDeposito();
+    }
+
     const selo = document.getElementById('statusFechamento');
     selo.textContent = status === 'fechado' ? 'Fechado' : 'Aberto';
     selo.className = `status-fechamento ${status}`;
@@ -264,7 +308,15 @@ document.getElementById('btnFecharCaixa').addEventListener('click', async () => 
     if (!confirm('Fechar o caixa deste dia e liberar para deposito?')) return;
     const data = document.getElementById('dataSelecionada').value;
     try {
+        // Salva tambem despesas/deposito/observacoes junto com o fechamento -
+        // assim, mesmo que a pessoa nao tenha clicado em "Salvar" antes, o
+        // valor de Deposito mostrado na tela (que pode ser so a sugestao
+        // automatica, ainda nao salva) fica registrado de verdade.
         await setDoc(doc(db, 'fechamentos', data), {
+            despesas: parseFloat(document.getElementById('despesas').value) || 0,
+            despesasObs: document.getElementById('despesas_obs').value.trim(),
+            deposito: document.getElementById('deposito').value ? parseFloat(document.getElementById('deposito').value) : null,
+            observacoes: document.getElementById('observacoes').value.trim(),
             status: 'fechado',
             fechadoPor: auth.currentUser.uid,
             fechadoEm: new Date().toISOString()
