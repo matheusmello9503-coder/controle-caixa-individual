@@ -55,9 +55,9 @@ service cloud.firestore {
       let localMillis = request.time.toMillis() - deslocamentoMillis;
       return localMillis / (24 * 60 * 60 * 1000);
     }
-    function diaLocalDoMomento(timestamp) {
+    function diaLocalDoMomento(momento) {
       let deslocamentoMillis = 4 * 60 * 60 * 1000;
-      let localMillis = timestamp.toMillis() - deslocamentoMillis;
+      let localMillis = momento.toMillis() - deslocamentoMillis;
       return localMillis / (24 * 60 * 60 * 1000);
     }
 
