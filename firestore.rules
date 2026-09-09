@@ -46,6 +46,21 @@ service cloud.firestore {
       return horaLocal >= 7 && horaLocal < 19;
     }
 
+    // Data local (Campo Grande, UTC-4) de agora, como numero de dias
+    // inteiros desde a epoca - usado para comparar com a data (tambem em
+    // dias) de quando um lancamento foi criado, sem depender de "quantas
+    // horas se passaram" (que varia dependendo da hora do dia).
+    function diaLocalDeHoje() {
+      let deslocamentoMillis = 4 * 60 * 60 * 1000;
+      let localMillis = request.time.toMillis() - deslocamentoMillis;
+      return localMillis / (24 * 60 * 60 * 1000);
+    }
+    function diaLocalDoMomento(timestamp) {
+      let deslocamentoMillis = 4 * 60 * 60 * 1000;
+      let localMillis = timestamp.toMillis() - deslocamentoMillis;
+      return localMillis / (24 * 60 * 60 * 1000);
+    }
+
     // ---------- usuarios ----------
     // Cada pessoa pode ler o proprio cadastro (para o sistema saber seu
     // perfil). O administrador pode ler, criar, editar e desativar qualquer
@@ -83,16 +98,17 @@ service cloud.firestore {
       // Edicao e exclusao: o administrador pode sempre. O supervisor pode
       // corrigir qualquer lancamento (parte do fechamento), sem restricao
       // de horario. A recepcao so pode mexer no proprio lancamento, dentro
-      // do horario permitido, e apenas enquanto o lancamento for recente
-      // (ate 20 horas apos criado) - uma aproximacao segura de "somente
-      // lancamentos do dia".
+      // do horario permitido, e apenas se o lancamento foi criado hoje ou
+      // ontem (no maximo 1 dia atras) - comparando a DATA local (nao um
+      // numero fixo de horas), entao um lancamento de ontem as 18h continua
+      // editavel hoje de manha, do mesmo jeito que um de ontem as 8h.
       allow update, delete: if souAdmin()
         || souSupervisorAtivo()
         || (
           souRecepcaoAtivo()
           && resource.data.usuarioId == request.auth.uid
           && dentroDoHorarioPermitido()
-          && request.time.toMillis() - resource.data.criadoEm.toMillis() < 20 * 60 * 60 * 1000
+          && diaLocalDeHoje() - diaLocalDoMomento(resource.data.criadoEm) <= 1
         );
     }
 

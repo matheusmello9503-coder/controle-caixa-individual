@@ -23,15 +23,23 @@ function dataLocalStr() {
 }
 
 // Data que a tela esta exibindo no momento (segue o campo "Data" no topo).
-// So e possivel lancar/editar/excluir quando esta data e igual a hoje - o
-// firestore.rules ja bloqueia isso no servidor por horario, mas aqui a tela
-// tambem esconde o formulario e os botoes para ficar claro o motivo, em vez
-// de a pessoa tentar salvar e receber um erro de permissao sem entender.
+// So e possivel LANCAR um atendimento novo no dia de hoje. Ja EDITAR/EXCLUIR
+// um lancamento existente e permitido em hoje OU ontem (no maximo 1 dia
+// atras) - o firestore.rules ja aplica essa mesma regra no servidor (por
+// data local, nao por um numero fixo de horas); aqui a tela so espelha isso
+// para ficar claro o motivo, em vez de a pessoa tentar e levar um erro de
+// permissao sem entender.
 function dataEstaSelecionada() {
     return document.getElementById('dataSelecionada').value;
 }
 function estaVendoHoje() {
     return dataEstaSelecionada() === dataLocalStr();
+}
+function estaVendoHojeOuOntem() {
+    const hoje = new Date(dataLocalStr() + 'T00:00:00');
+    const selecionada = new Date(dataEstaSelecionada() + 'T00:00:00');
+    const diffDias = Math.round((hoje - selecionada) / (24 * 60 * 60 * 1000));
+    return diffDias === 0 || diffDias === 1;
 }
 
 function horaLocalAtual() {
@@ -145,10 +153,19 @@ document.getElementById('btnDataHoje').addEventListener('click', () => {
 
 // Mostra/esconde o formulario de novo atendimento e o aviso, e ajusta os
 // titulos da tela, conforme a data selecionada e ou nao o dia de hoje.
+// Lancar um atendimento NOVO so e possivel hoje; editar/excluir um
+// lancamento existente e permitido tambem no dia anterior (o aviso muda de
+// texto para deixar essa diferenca clara).
 function atualizarModoSomenteLeitura() {
     const vendoHoje = estaVendoHoje();
+    const podeEditar = estaVendoHojeOuOntem();
     document.getElementById('formLancamento').style.display = vendoHoje ? 'block' : 'none';
-    document.getElementById('avisoDataPassada').style.display = vendoHoje ? 'none' : 'block';
+
+    const aviso = document.getElementById('avisoDataPassada');
+    aviso.style.display = vendoHoje ? 'none' : 'block';
+    aviso.textContent = podeEditar
+        ? 'Você está vendo o dia anterior. Ainda é possível editar ou excluir esses atendimentos, mas só é possível lançar um atendimento novo no dia de hoje.'
+        : 'Você está vendo um dia diferente de hoje/ontem. Este período fica disponível somente para consulta.';
 
     const dataFormatada = new Date(dataEstaSelecionada() + 'T00:00:00').toLocaleDateString('pt-BR');
     document.getElementById('tituloTabelaAtendimentos').textContent = vendoHoje
@@ -200,10 +217,10 @@ function renderizarTabela() {
     corpo.innerHTML = '';
     let total = 0;
     let grupoAnterior = null;
-    // So e possivel editar/excluir no dia de hoje (o firestore.rules bloqueia
-    // o resto no servidor); em outros dias a tabela fica so para consulta,
-    // sem mostrar botoes que iriam falhar se clicados.
-    const podeEditar = estaVendoHoje();
+    // So e possivel editar/excluir em hoje ou ontem (o firestore.rules
+    // bloqueia o resto no servidor); em dias mais antigos a tabela fica so
+    // para consulta, sem mostrar botoes que iriam falhar se clicados.
+    const podeEditar = estaVendoHojeOuOntem();
 
     ultimaLista.forEach(l => {
         total += l.valor;
@@ -252,7 +269,7 @@ async function excluirLancamento(id) {
     try {
         await deleteDoc(doc(db, 'lancamentos', id));
     } catch (e) {
-        mostrarErro('Não foi possível excluir (' + e.code + '). Verifique se ainda está dentro do horário permitido.');
+        mostrarErro('Não foi possível excluir (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que ontem.');
     }
 }
 
@@ -368,7 +385,7 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             entrarModoNovo();
         }
     } catch (e) {
-        mostrarErro('Não foi possível salvar (' + e.code + '). Verifique se ainda está dentro do horário permitido.');
+        mostrarErro('Não foi possível salvar (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que ontem.');
     }
 });
 
