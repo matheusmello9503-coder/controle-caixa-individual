@@ -57,7 +57,7 @@
                 <div class="grade-resumo" id="grade-resumo"></div>
 
                 <div class="painel">
-                    <h2>Pendencias (sem titulo ou sem tesouraria)</h2>
+                    <h2>Pend&ecirc;ncias (sem t&iacute;tulo ou sem tesouraria)</h2>
                     <div class="tabela-scroll">
                         <table>
                             <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>Tesouraria</th></tr></thead>
@@ -77,10 +77,10 @@
                 </div>
 
                 <div class="painel">
-                    <h2>Todos os lancamentos do dia</h2>
+                    <h2>Todos os lan&ccedil;amentos do dia</h2>
                     <div class="tabela-scroll">
                         <table>
-                            <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>N&ordm; NF</th><th>Tesouraria</th></tr></thead>
+                            <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>T&iacute;tulo</th><th>N&ordm; NF</th><th>Tesouraria</th></tr></thead>
                             <tbody id="corpoTodos"></tbody>
                         </table>
                     </div>
@@ -92,20 +92,20 @@
                     <div class="erro" id="msgErro"></div>
                     <div class="form-linha" style="grid-template-columns: 1fr 2fr 1fr auto auto;">
                         <div class="campo"><label>Despesas (R$)</label><input type="number" id="despesas" step="0.01" min="0"></div>
-                        <div class="campo"><label>Observacao das despesas</label><input type="text" id="despesas_obs"></div>
-                        <div class="campo"><label>Deposito (R$)</label><input type="number" id="deposito" step="0.01" min="0"></div>
+                        <div class="campo"><label>Observa&ccedil;&atilde;o das despesas</label><input type="text" id="despesas_obs"></div>
+                        <div class="campo"><label>Dep&oacute;sito (R$)</label><input type="number" id="deposito" step="0.01" min="0"></div>
                         <button class="botao secundario" id="btnSalvarFechamento">Salvar</button>
                         <button class="botao" id="btnFecharCaixa">Fechar caixa do dia</button>
                     </div>
                     <p class="texto-apoio" style="margin-top:8px">
-                        O Deposito ja vem preenchido automaticamente (Especie sem contar o Pix) - confira e ajuste se precisar antes de salvar.
+                        O Dep&oacute;sito j&aacute; vem preenchido automaticamente (Esp&eacute;cie sem contar o Pix) - confira e ajuste se precisar antes de salvar.
                     </p>
                     <div class="campo" style="margin-top:4px">
                         <label>Observacoes gerais</label>
                         <textarea id="observacoes" rows="2"></textarea>
                     </div>
                     <p class="texto-apoio" style="margin-top:10px">
-                        Confira este resumo com o Tasy e com os extratos de Pix e cartao antes de liberar o deposito.
+                        Confira este resumo com o Tasy e com os extratos de Pix e cart&atilde;o antes de liberar o dep&oacute;sito.
                     </p>
                     <button class="botao secundario pequeno" id="btnReabrir" style="display:none">Reabrir dia</button>
                 </div>

@@ -31,7 +31,7 @@
 
     <div>
         <header class="topbar">
-            <div class="topbar-titulo">Meus atendimentos
+            <div class="topbar-titulo" id="tituloTopbar">Meus atendimentos
                 <span class="sub" id="dataHoje"></span>
             </div>
             <div class="topbar-usuario">
@@ -41,12 +41,23 @@
 
         <main class="conteudo">
 
+            <div class="linha-toolbar">
+                <div class="campo" style="margin-bottom:0">
+                    <label>Data</label>
+                    <input type="date" id="dataSelecionada">
+                </div>
+                <button type="button" class="botao secundario pequeno" id="btnDataHoje">Hoje</button>
+            </div>
+
             <div class="grade-resumo" id="grade-resumo-recepcao"></div>
 
-            <div class="painel">
+            <div class="painel" id="painelNovoAtendimento">
                 <h2>Novo atendimento</h2>
                 <p class="texto-apoio">
                     Um paciente com vários exames pagos juntos: preencha os dados do pagamento uma vez e adicione um exame por linha, cada um com seu próprio título.
+                </p>
+                <p class="texto-apoio aviso-dia-diferente" id="avisoDataPassada" style="display:none">
+                    Você está vendo um dia diferente de hoje. Só é possível lançar ou editar atendimentos no próprio dia; para lançar um atendimento de hoje, volte a data para hoje.
                 </p>
                 <div class="mensagem-ok" id="msgOk"></div>
                 <div class="erro" id="msgErro"></div>
@@ -60,9 +71,9 @@
                         <div class="campo">
                             <label>Pagamento</label>
                             <select id="forma_pagamento" required>
-                                <option value="Debito">Debito</option>
-                                <option value="Credito">Credito</option>
-                                <option value="Especie">Especie</option>
+                                <option value="Debito">D&eacute;bito</option>
+                                <option value="Credito">Cr&eacute;dito</option>
+                                <option value="Especie">Esp&eacute;cie</option>
                                 <option value="Pix">Pix</option>
                             </select>
                         </div>
@@ -80,10 +91,10 @@
 
                     <div style="display:flex; gap:10px; align-items:center; margin:10px 0 16px">
                         <button type="button" class="botao secundario pequeno" id="btnAddExame">+ Adicionar outro exame</button>
-                        <span id="labelModoEdicao" style="font-size:12px;color:var(--cinza-texto);display:none">Editando um lancamento existente</span>
+                        <span id="labelModoEdicao" style="font-size:12px;color:var(--cinza-texto);display:none">Editando um lan&ccedil;amento existente</span>
                     </div>
 
-                    <button type="submit" class="botao" id="btnSalvar">Lancar atendimento</button>
+                    <button type="submit" class="botao" id="btnSalvar">Lan&ccedil;ar atendimento</button>
                 </form>
             </div>
 
@@ -106,7 +117,7 @@
                         <input type="number" class="campo-valor" step="0.01" min="0" required>
                     </div>
                     <div class="campo">
-                        <label>Titulo (deste exame)</label>
+                        <label>T&iacute;tulo (deste exame)</label>
                         <input type="text" class="campo-titulo">
                     </div>
                     <button type="button" class="botao perigo pequeno botao-remover-exame" style="height:38px">Remover</button>
@@ -114,13 +125,13 @@
             </template>
 
             <div class="painel">
-                <h2 style="margin:0 0 14px">Meus atendimentos de hoje</h2>
+                <h2 style="margin:0 0 14px" id="tituloTabelaAtendimentos">Meus atendimentos de hoje</h2>
                 <div class="tabela-scroll">
                     <table>
                         <thead>
                             <tr>
                                 <th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th>
-                                <th>Titulo</th><th>N&ordm; NF</th><th>Tesouraria</th><th></th>
+                                <th>T&iacute;tulo</th><th>N&ordm; NF</th><th>Tesouraria</th><th></th>
                             </tr>
                         </thead>
                         <tbody id="corpoTabela"></tbody>
