@@ -77,9 +77,21 @@
 
                 <div class="painel">
                     <h2>Todos os lan&ccedil;amentos do dia</h2>
+                    <p class="texto-apoio" style="margin-top:-8px">Clique em um t&iacute;tulo da coluna para ordenar por ela (clique de novo para inverter a ordem).</p>
                     <div class="tabela-scroll">
-                        <table>
-                            <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>T&iacute;tulo</th><th>N&ordm; NF</th><th>Tesouraria</th></tr></thead>
+                        <table id="tabelaTodos">
+                            <thead>
+                                <tr>
+                                    <th class="th-ordenavel" data-ordenar="usuarioNome">Atendente</th>
+                                    <th class="th-ordenavel" data-ordenar="nomePaciente">Paciente</th>
+                                    <th class="th-ordenavel" data-ordenar="exame">Exame</th>
+                                    <th class="th-ordenavel" data-ordenar="valor">Valor</th>
+                                    <th class="th-ordenavel" data-ordenar="formaPagamento">Pagamento</th>
+                                    <th class="th-ordenavel" data-ordenar="titulo">T&iacute;tulo</th>
+                                    <th class="th-ordenavel" data-ordenar="numeroNf">N&ordm; NF</th>
+                                    <th class="th-ordenavel" data-ordenar="tesouraria">Tesouraria</th>
+                                </tr>
+                            </thead>
                             <tbody id="corpoTodos"></tbody>
                         </table>
                     </div>
