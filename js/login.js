@@ -32,15 +32,15 @@ function redirecionar(perfil) {
 
 function traduzirErro(codigo) {
     const mapa = {
-        'auth/invalid-email': 'E-mail invalido.',
-        'auth/user-disabled': 'Este usuario esta desativado.',
-        'auth/user-not-found': 'E-mail ou senha invalidos.',
-        'auth/wrong-password': 'E-mail ou senha invalidos.',
-        'auth/invalid-credential': 'E-mail ou senha invalidos.',
+        'auth/invalid-email': 'E-mail inválido.',
+        'auth/user-disabled': 'Este usuário está desativado.',
+        'auth/user-not-found': 'E-mail ou senha inválidos.',
+        'auth/wrong-password': 'E-mail ou senha inválidos.',
+        'auth/invalid-credential': 'E-mail ou senha inválidos.',
         'auth/missing-email': 'Digite seu e-mail no campo acima.',
         'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
     };
-    return mapa[codigo] || 'Nao foi possivel completar a acao. Tente novamente.';
+    return mapa[codigo] || 'Não foi possível completar a ação. Tente novamente.';
 }
 
 document.getElementById('formLogin').addEventListener('submit', async (ev) => {
@@ -58,7 +58,7 @@ document.getElementById('formLogin').addEventListener('submit', async (ev) => {
 
         if (!perfilDoc.exists() || perfilDoc.data().ativo !== true) {
             await signOut(auth);
-            mostrarErro('Sua conta ainda nao foi liberada. Fale com o responsavel pelo caixa.');
+            mostrarErro('Sua conta ainda não foi liberada. Fale com o responsável pelo caixa.');
             return;
         }
 
@@ -88,7 +88,7 @@ document.getElementById('linkEsqueciSenha').addEventListener('click', async (ev)
     }
     try {
         await sendPasswordResetEmail(auth, email);
-        mostrarSucesso('Enviamos um e-mail de redefinicao para ' + email + '. Confira a caixa de entrada (e a pasta de Spam) nos proximos minutos.');
+        mostrarSucesso('Enviamos um e-mail de redefinição para ' + email + '. Confira a caixa de entrada (e a pasta de Spam) nos próximos minutos.');
     } catch (e) {
         mostrarErro(traduzirErro(e.code));
     }

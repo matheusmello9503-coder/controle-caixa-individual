@@ -94,8 +94,8 @@ document.getElementById('dataSelecionada').addEventListener('change', () => {
 // ---------- Abas (Fechamento / Historico) ----------
 const tituloAbaEl = document.getElementById('tituloAba');
 const titulosAba = {
-    fechamento: { titulo: 'Fechamento do dia', sub: 'Visao consolidada de todos os atendentes' },
-    historico: { titulo: 'Historico', sub: 'Totais e evolucao dos ultimos dias' }
+    fechamento: { titulo: 'Fechamento do dia', sub: 'Vis&atilde;o consolidada de todos os atendentes' },
+    historico: { titulo: 'Histórico', sub: 'Totais e evolução dos últimos dias' }
 };
 document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
     aba.addEventListener('click', () => {
@@ -142,7 +142,7 @@ function carregarLancamentosDoDia() {
         listaDoDia = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         renderizarResumo();
     }, (erro) => {
-        mostrarErro('Nao foi possivel carregar os lancamentos: ' + erro.message);
+        mostrarErro('Não foi possível carregar os lançamentos: ' + erro.message);
     });
 }
 
@@ -152,8 +152,14 @@ function renderizarResumo() {
     let totalGeral = 0;
 
     listaDoDia.forEach(l => {
-        mapaFormas[l.formaPagamento].total += l.valor;
-        mapaFormas[l.formaPagamento].qtd += 1;
+        // Protecao contra um lancamento com forma de pagamento fora das 4
+        // esperadas (dado antigo, editado manualmente no console do
+        // Firebase, ou uma futura forma nova ainda nao suportada aqui) -
+        // sem isso, um unico lancamento assim travava a tela inteira.
+        if (mapaFormas[l.formaPagamento]) {
+            mapaFormas[l.formaPagamento].total += l.valor;
+            mapaFormas[l.formaPagamento].qtd += 1;
+        }
         totalGeral += l.valor;
 
         if (!porAtendente[l.usuarioNome]) porAtendente[l.usuarioNome] = { total: 0, qtd: 0 };
@@ -197,14 +203,14 @@ function renderizarResumo() {
             <tr class="linha-pendente">
                 <td>${l.usuarioNome}</td><td>${l.nomePaciente}</td><td>${l.exame}</td>
                 <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}</td>
-                <td>${l.titulo || '<span class="selo pendente">Sem titulo</span>'}</td>
+                <td>${l.titulo || '<span class="selo pendente">Sem t&iacute;tulo</span>'}</td>
                 <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
             </tr>`).join('')
         : '<tr><td colspan="7" style="color:var(--cinza-texto)">Nenhuma pendencia.</td></tr>';
 
     document.getElementById('corpoAtendentes').innerHTML = Object.entries(porAtendente).map(([nome, v]) => `
         <tr><td>${nome}</td><td>${v.qtd}</td><td>${formatarMoeda(v.total)}</td></tr>
-    `).join('') || '<tr><td colspan="3" style="color:var(--cinza-texto)">Sem lancamentos.</td></tr>';
+    `).join('') || '<tr><td colspan="3" style="color:var(--cinza-texto)">Sem lançamentos.</td></tr>';
 
     const todos = [...listaDoDia].sort((a, b) => (a.criadoEm?.toMillis?.() || 0) - (b.criadoEm?.toMillis?.() || 0));
     let grupoAnteriorTodos = null;
@@ -218,7 +224,7 @@ function renderizarResumo() {
             <td>${l.titulo || '-'}</td><td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
         </tr>`;
-    }).join('') || '<tr><td colspan="8" style="color:var(--cinza-texto)">Sem lancamentos.</td></tr>';
+    }).join('') || '<tr><td colspan="8" style="color:var(--cinza-texto)">Sem lançamentos.</td></tr>';
 }
 
 function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
@@ -226,7 +232,7 @@ function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
         <div class="cartao-resumo ${destaque ? 'destaque' : ''}">
             <div class="rotulo">${rotulo}</div>
             <div class="valor">${formatarMoeda(valor)}</div>
-            ${quantidade !== undefined ? `<div class="qtd">${quantidade} lancamento(s)</div>` : ''}
+            ${quantidade !== undefined ? `<div class="qtd">${quantidade} lançamento(s)</div>` : ''}
         </div>
     `;
 }
@@ -280,12 +286,12 @@ document.getElementById('btnSalvarFechamento').addEventListener('click', async (
         }, { merge: true });
         mostrarOk('Fechamento salvo.');
     } catch (e) {
-        mostrarErro('Nao foi possivel salvar: ' + e.message);
+        mostrarErro('Não foi possível salvar: ' + e.message);
     }
 });
 
 document.getElementById('btnFecharCaixa').addEventListener('click', async () => {
-    if (!confirm('Fechar o caixa deste dia e liberar para deposito?')) return;
+    if (!confirm('Fechar o caixa deste dia e liberar para depósito?')) return;
     const data = document.getElementById('dataSelecionada').value;
     try {
         // Salva tambem despesas/deposito/observacoes junto com o fechamento -
@@ -304,7 +310,7 @@ document.getElementById('btnFecharCaixa').addEventListener('click', async () => 
         mostrarOk('Caixa fechado.');
         carregarFechamento();
     } catch (e) {
-        mostrarErro('Nao foi possivel fechar: ' + e.message);
+        mostrarErro('Não foi possível fechar: ' + e.message);
     }
 });
 
@@ -315,6 +321,6 @@ document.getElementById('btnReabrir').addEventListener('click', async () => {
         mostrarOk('Dia reaberto.');
         carregarFechamento();
     } catch (e) {
-        mostrarErro('Nao foi possivel reabrir: ' + e.message);
+        mostrarErro('Não foi possível reabrir: ' + e.message);
     }
 });

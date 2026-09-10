@@ -22,6 +22,26 @@ function dataLocalStr() {
     return `${mapa.year}-${mapa.month}-${mapa.day}`;
 }
 
+// Data que a tela esta exibindo no momento (segue o campo "Data" no topo).
+// So e possivel LANCAR um atendimento novo no dia de hoje. Ja EDITAR/EXCLUIR
+// um lancamento existente e permitido em hoje OU ontem (no maximo 1 dia
+// atras) - o firestore.rules ja aplica essa mesma regra no servidor (por
+// data local, nao por um numero fixo de horas); aqui a tela so espelha isso
+// para ficar claro o motivo, em vez de a pessoa tentar e levar um erro de
+// permissao sem entender.
+function dataEstaSelecionada() {
+    return document.getElementById('dataSelecionada').value;
+}
+function estaVendoHoje() {
+    return dataEstaSelecionada() === dataLocalStr();
+}
+function estaVendoHojeOuOntem() {
+    const hoje = new Date(dataLocalStr() + 'T00:00:00');
+    const selecionada = new Date(dataEstaSelecionada() + 'T00:00:00');
+    const diffDias = Math.round((hoje - selecionada) / (24 * 60 * 60 * 1000));
+    return diffDias === 0 || diffDias === 1;
+}
+
 function horaLocalAtual() {
     const texto = new Intl.DateTimeFormat('en-US', { timeZone: FUSO_HORARIO, hour: '2-digit', hour12: false }).format(new Date());
     return parseInt(texto, 10) % 24;
@@ -50,7 +70,7 @@ function atualizarAvisoHorario() {
     const btn = document.getElementById('btnSalvar');
     if (!dentroDoHorario()) {
         btn.disabled = true;
-        mostrarErro(`Fora do horario permitido (${String(HORA_INICIO).padStart(2, '0')}h as ${String(HORA_FIM).padStart(2, '0')}h). Novos lancamentos ficam bloqueados pelo servidor.`);
+        mostrarErro(`Fora do horário permitido (${String(HORA_INICIO).padStart(2, '0')}h às ${String(HORA_FIM).padStart(2, '0')}h). Novos lançamentos ficam bloqueados pelo servidor.`);
     } else {
         btn.disabled = false;
     }
@@ -80,7 +100,7 @@ function limparLinhasExame() {
 
 function entrarModoNovo() {
     delete document.getElementById('formLancamento').dataset.editandoId;
-    document.getElementById('btnSalvar').textContent = 'Lancar atendimento';
+    document.getElementById('btnSalvar').textContent = 'Lançar atendimento';
     document.getElementById('btnAddExame').style.display = 'inline-block';
     document.getElementById('labelModoEdicao').style.display = 'none';
     document.getElementById('numero_nf').parentElement.querySelector('label').textContent = 'N\u00ba NF (do recebimento)';
@@ -109,23 +129,63 @@ onAuthStateChanged(auth, async (usuario) => {
 
     usuarioAtual = { uid: usuario.uid, ...perfilDoc.data() };
     document.getElementById('dataHoje').textContent = new Date().toLocaleDateString('pt-BR', { timeZone: FUSO_HORARIO });
+    document.getElementById('dataSelecionada').value = dataLocalStr();
 
     montarNavRapida({ perfil: usuarioAtual.perfil, nome: usuarioAtual.nome, paginaAtual: 'recepcao' });
 
     atualizarAvisoHorario();
+    atualizarModoSomenteLeitura();
     setInterval(atualizarAvisoHorario, 60000);
 
     iniciarOuvintedeLancamentos();
 });
 
+document.getElementById('dataSelecionada').addEventListener('change', () => {
+    atualizarModoSomenteLeitura();
+    iniciarOuvintedeLancamentos();
+});
+
+document.getElementById('btnDataHoje').addEventListener('click', () => {
+    document.getElementById('dataSelecionada').value = dataLocalStr();
+    atualizarModoSomenteLeitura();
+    iniciarOuvintedeLancamentos();
+});
+
+// Mostra/esconde o formulario de novo atendimento e o aviso, e ajusta os
+// titulos da tela, conforme a data selecionada e ou nao o dia de hoje.
+// Lancar um atendimento NOVO so e possivel hoje; editar/excluir um
+// lancamento existente e permitido tambem no dia anterior (o aviso muda de
+// texto para deixar essa diferenca clara).
+function atualizarModoSomenteLeitura() {
+    const vendoHoje = estaVendoHoje();
+    const podeEditar = estaVendoHojeOuOntem();
+    document.getElementById('formLancamento').style.display = vendoHoje ? 'block' : 'none';
+
+    const aviso = document.getElementById('avisoDataPassada');
+    aviso.style.display = vendoHoje ? 'none' : 'block';
+    aviso.textContent = podeEditar
+        ? 'Você está vendo o dia anterior. Ainda é possível editar ou excluir esses atendimentos, mas só é possível lançar um atendimento novo no dia de hoje.'
+        : 'Você está vendo um dia diferente de hoje/ontem. Este período fica disponível somente para consulta.';
+
+    const dataFormatada = new Date(dataEstaSelecionada() + 'T00:00:00').toLocaleDateString('pt-BR');
+    document.getElementById('tituloTabelaAtendimentos').textContent = vendoHoje
+        ? 'Meus atendimentos de hoje'
+        : `Meus atendimentos de ${dataFormatada}`;
+    document.getElementById('tituloTopbar').childNodes[0].textContent = vendoHoje
+        ? 'Meus atendimentos '
+        : 'Atendimentos de ' + dataFormatada + ' ';
+
+    if (!vendoHoje) entrarModoNovo();
+}
+
 function iniciarOuvintedeLancamentos() {
     if (cancelarOuvinte) cancelarOuvinte();
 
-    const hoje = dataLocalStr();
+    const dataAlvo = dataEstaSelecionada();
     const q = query(
         collection(db, 'lancamentos'),
         where('usuarioId', '==', usuarioAtual.uid),
-        where('data', '==', hoje)
+        where('data', '==', dataAlvo)
     );
 
     cancelarOuvinte = onSnapshot(q, (snapshot) => {
@@ -133,7 +193,7 @@ function iniciarOuvintedeLancamentos() {
         ultimaLista.sort((a, b) => (a.criadoEm?.toMillis?.() || 0) - (b.criadoEm?.toMillis?.() || 0));
         renderizarTabela();
     }, (erro) => {
-        mostrarErro('Nao foi possivel carregar os atendimentos: ' + erro.message);
+        mostrarErro('Não foi possível carregar os atendimentos: ' + erro.message);
     });
 }
 
@@ -141,11 +201,12 @@ function renderizarResumoHero() {
     const grade = document.getElementById('grade-resumo-recepcao');
     if (!grade) return;
     const total = ultimaLista.reduce((s, l) => s + (l.valor || 0), 0);
+    const rotulo = estaVendoHoje() ? 'Total lan&ccedil;ado hoje' : 'Total lan&ccedil;ado neste dia';
     grade.innerHTML = `
         <div class="cartao-resumo destaque">
-            <div class="rotulo">Total lan&ccedil;ado hoje</div>
+            <div class="rotulo">${rotulo}</div>
             <div class="valor">${formatarMoeda(total)}</div>
-            <div class="qtd">${ultimaLista.length} lancamento(s)</div>
+            <div class="qtd">${ultimaLista.length} lan&ccedil;amento(s)</div>
         </div>
     `;
 }
@@ -156,6 +217,10 @@ function renderizarTabela() {
     corpo.innerHTML = '';
     let total = 0;
     let grupoAnterior = null;
+    // So e possivel editar/excluir em hoje ou ontem (o firestore.rules
+    // bloqueia o resto no servidor); em dias mais antigos a tabela fica so
+    // para consulta, sem mostrar botoes que iriam falhar se clicados.
+    const podeEditar = estaVendoHojeOuOntem();
 
     ultimaLista.forEach(l => {
         total += l.valor;
@@ -176,12 +241,18 @@ function renderizarTabela() {
             <td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
             <td>
-                <button class="botao secundario pequeno" data-editar="${l.id}">Editar</button>
-                <button class="botao perigo pequeno" data-excluir="${l.id}">Excluir</button>
+                ${podeEditar ? `
+                    <button class="botao secundario pequeno" data-editar="${l.id}">Editar</button>
+                    <button class="botao perigo pequeno" data-excluir="${l.id}">Excluir</button>
+                ` : ''}
             </td>
         `;
         corpo.appendChild(tr);
     });
+
+    if (ultimaLista.length === 0) {
+        corpo.innerHTML = '<tr><td colspan="8" style="color:var(--cinza-texto)">Nenhum atendimento neste dia.</td></tr>';
+    }
 
     document.getElementById('totalDia').textContent = formatarMoeda(total);
 
@@ -194,11 +265,11 @@ function renderizarTabela() {
 }
 
 async function excluirLancamento(id) {
-    if (!confirm('Excluir este exame do atendimento? (Isso nao apaga os outros exames do mesmo recebimento, se houver.)')) return;
+    if (!confirm('Excluir este exame do atendimento? (Isso não apaga os outros exames do mesmo recebimento, se houver.)')) return;
     try {
         await deleteDoc(doc(db, 'lancamentos', id));
     } catch (e) {
-        mostrarErro('Nao foi possivel excluir (' + e.code + '). Verifique se ainda esta dentro do horario permitido.');
+        mostrarErro('Não foi possível excluir (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que ontem.');
     }
 }
 
@@ -223,7 +294,7 @@ function editarLancamento(id) {
     document.getElementById('btnAddExame').style.display = 'none';
     document.getElementById('labelModoEdicao').style.display = 'inline';
     document.getElementById('formLancamento').dataset.editandoId = id;
-    document.getElementById('btnSalvar').textContent = 'Salvar edicao deste exame';
+    document.getElementById('btnSalvar').textContent = 'Salvar edição deste exame';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -233,7 +304,7 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
 
     const temHorarioLivre = usuarioAtual.perfil === 'admin' || usuarioAtual.perfil === 'supervisor';
     if (!temHorarioLivre && !dentroDoHorario()) {
-        mostrarErro('Fora do horario permitido para lancamentos.');
+        mostrarErro('Fora do horário permitido para lançamentos.');
         return;
     }
 
@@ -310,11 +381,11 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             });
 
             await lote.commit();
-            mostrarOk(exames.length > 1 ? 'Atendimento lancado (' + exames.length + ' exames).' : 'Atendimento lancado.');
+            mostrarOk(exames.length > 1 ? 'Atendimento lançado (' + exames.length + ' exames).' : 'Atendimento lançado.');
             entrarModoNovo();
         }
     } catch (e) {
-        mostrarErro('Nao foi possivel salvar (' + e.code + '). Verifique se ainda esta dentro do horario permitido.');
+        mostrarErro('Não foi possível salvar (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que ontem.');
     }
 });
 

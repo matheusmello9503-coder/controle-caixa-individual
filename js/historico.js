@@ -104,7 +104,7 @@ export function renderizarHistorico(dados, { idGrade, idGrafico, idTabela }) {
             <div class="cartao-resumo destaque">
                 <div class="rotulo">Total do per&iacute;odo</div>
                 <div class="valor">${formatarMoeda(totalPeriodo)}</div>
-                <div class="qtd">${qtdPeriodo} lancamento(s)</div>
+                <div class="qtd">${qtdPeriodo} lan&ccedil;amento(s)</div>
             </div>
             <div class="grupo-rotulo">Neste per&iacute;odo</div>
             <div class="cartao-resumo">
@@ -129,7 +129,7 @@ export function renderizarHistorico(dados, { idGrade, idGrafico, idTabela }) {
         grafico.innerHTML = dados.map(d => {
             const alturaPct = Math.max((d.total / maiorValor) * 100, 2);
             return `
-                <div class="barra-dia" title="${formatarDataCurta(d.data)}: ${formatarMoeda(d.total)} (${d.qtd} lancamento(s))">
+                <div class="barra-dia" title="${formatarDataCurta(d.data)}: ${formatarMoeda(d.total)} (${d.qtd} lan&ccedil;amento(s))">
                     <span class="valor-dia">${d.total > 0 ? formatarMoedaCompacta(d.total) : ''}</span>
                     <div class="coluna ${d.status === 'fechado' ? 'fechado' : ''}" style="height:${alturaPct}%"></div>
                     <span class="rotulo-dia">${formatarDataCurta(d.data)}</span>
