@@ -155,6 +155,18 @@ h1, h2, h3 { font-family: inherit; }
 .botao.perigo:hover { background: #a02a22; }
 .botao.pequeno { padding: 7px 12px; font-size: 0.78rem; }
 .botao:disabled { opacity: 0.5; cursor: not-allowed; }
+.botao.link {
+    background: none;
+    color: var(--azul-vivo);
+    border: none;
+    padding: 4px 0;
+    font-weight: 600;
+    text-decoration: underline;
+}
+.botao.link:hover { background: none; color: var(--azul-escuro); }
+
+.resumo-pagamento-dividido-ok { color: var(--verde-ok); }
+.resumo-pagamento-dividido-erro { color: var(--vermelho-alerta); }
 
 .erro {
     background: var(--vermelho-bg);
@@ -518,6 +530,24 @@ thead th {
 }
 thead th:first-child { border-radius: 8px 0 0 8px; }
 thead th:last-child { border-radius: 0 8px 8px 0; }
+th.th-ordenavel {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+th.th-ordenavel:hover { background: #d9e6fb; }
+th.th-ordenavel::after {
+    content: '';
+    display: inline-block;
+    width: 0; height: 0;
+    margin-left: 5px;
+    vertical-align: middle;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    opacity: 0.35;
+}
+th.th-ordenavel.ordenado-asc::after { border-bottom: 5px solid var(--azul-escuro); opacity: 1; }
+th.th-ordenavel.ordenado-desc::after { border-top: 5px solid var(--azul-escuro); opacity: 1; }
 tbody td { padding: 8px 12px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; }
 tbody tr:hover { background: #fafbff; }
 tbody tr:last-child td { border-bottom: none; }
