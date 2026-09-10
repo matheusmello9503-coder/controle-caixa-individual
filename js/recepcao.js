@@ -86,26 +86,131 @@ function adicionarLinhaExame() {
     linha.querySelector('.botao-remover-exame').addEventListener('click', () => {
         if (listaExames.querySelectorAll('.linha-exame').length > 1) {
             linha.remove();
+            atualizarResumoPagamentoDividido();
         }
     });
+    linha.querySelector('.campo-valor').addEventListener('input', atualizarResumoPagamentoDividido);
     listaExames.appendChild(fragmento);
 }
 
-document.getElementById('btnAddExame').addEventListener('click', adicionarLinhaExame);
+document.getElementById('btnAddExame').addEventListener('click', () => {
+    adicionarLinhaExame();
+    atualizarResumoPagamentoDividido();
+});
 
 function limparLinhasExame() {
     listaExames.innerHTML = '';
     adicionarLinhaExame();
 }
 
+// ---------- Pagamento dividido (mais de uma forma no mesmo atendimento) ----------
+// Em vez de escolher UMA forma de pagamento para o atendimento inteiro, a
+// pessoa pode abrir este modo e informar varias formas com seus respectivos
+// valores (ex: R$150 em Especie + R$150 no Debito). A soma precisa bater
+// com o total dos exames antes de deixar salvar. Ao salvar, isso vira mais
+// de um lancamento no banco (um por forma de pagamento), todos com o mesmo
+// grupoId - o mesmo mecanismo ja usado para "varios exames no mesmo
+// atendimento" - assim o fechamento do dia (admin/supervisor) soma cada
+// parte na sua forma automaticamente, sem precisar de nenhuma mudanca la.
+const listaPagamentosDivididos = document.getElementById('listaPagamentosDivididos');
+const modeloLinhaPagamento = document.getElementById('modeloLinhaPagamento');
+const painelPagamentoDividido = document.getElementById('painelPagamentoDividido');
+const campoFormaPagamentoUnica = document.getElementById('forma_pagamento');
+
+function pagamentoEstaDividido() {
+    return painelPagamentoDividido.style.display !== 'none';
+}
+
+function adicionarLinhaPagamento(forma, valor) {
+    const fragmento = modeloLinhaPagamento.content.cloneNode(true);
+    const linha = fragmento.querySelector('.linha-pagamento-dividido');
+    if (forma) linha.querySelector('.campo-forma-dividida').value = forma;
+    if (valor !== undefined) linha.querySelector('.campo-valor-dividido').value = valor;
+    linha.querySelector('.campo-valor-dividido').addEventListener('input', atualizarResumoPagamentoDividido);
+    linha.querySelector('.campo-forma-dividida').addEventListener('change', atualizarResumoPagamentoDividido);
+    linha.querySelector('.botao-remover-pagamento').addEventListener('click', () => {
+        if (listaPagamentosDivididos.querySelectorAll('.linha-pagamento-dividido').length > 1) {
+            linha.remove();
+            atualizarResumoPagamentoDividido();
+        }
+    });
+    listaPagamentosDivididos.appendChild(fragmento);
+}
+
+function totalDosExames() {
+    return Array.from(listaExames.querySelectorAll('.campo-valor'))
+        .reduce((s, input) => s + (parseFloat(input.value) || 0), 0);
+}
+
+function totalDosPagamentosDivididos() {
+    return Array.from(listaPagamentosDivididos.querySelectorAll('.campo-valor-dividido'))
+        .reduce((s, input) => s + (parseFloat(input.value) || 0), 0);
+}
+
+// Retorna null se a soma bater com o total dos exames (dentro de 1 centavo,
+// por causa de arredondamento de ponto flutuante); senao, a diferenca (>0
+// significa que falta, <0 significa que passou), para a mensagem saber o
+// que dizer.
+function diferencaPagamentoDividido() {
+    const diff = totalDosExames() - totalDosPagamentosDivididos();
+    if (Math.abs(diff) < 0.01) return null;
+    return diff;
+}
+
+function atualizarResumoPagamentoDividido() {
+    if (!pagamentoEstaDividido()) return;
+    const resumo = document.getElementById('resumoPagamentoDividido');
+    const diff = diferencaPagamentoDividido();
+    if (diff === null) {
+        resumo.textContent = 'Soma confere com o total dos exames.';
+        resumo.classList.remove('resumo-pagamento-dividido-erro');
+        resumo.classList.add('resumo-pagamento-dividido-ok');
+    } else if (diff > 0) {
+        resumo.textContent = `Falta ${formatarMoeda(diff)} para completar o total dos exames.`;
+        resumo.classList.remove('resumo-pagamento-dividido-ok');
+        resumo.classList.add('resumo-pagamento-dividido-erro');
+    } else {
+        resumo.textContent = `A soma está passando o total dos exames em ${formatarMoeda(-diff)}.`;
+        resumo.classList.remove('resumo-pagamento-dividido-ok');
+        resumo.classList.add('resumo-pagamento-dividido-erro');
+    }
+}
+
+function entrarModoPagamentoDividido() {
+    painelPagamentoDividido.style.display = 'block';
+    document.getElementById('btnPagamentoDividido').style.display = 'none';
+    campoFormaPagamentoUnica.parentElement.style.display = 'none';
+    campoFormaPagamentoUnica.required = false;
+    listaPagamentosDivididos.innerHTML = '';
+    adicionarLinhaPagamento();
+    atualizarResumoPagamentoDividido();
+}
+
+function sairModoPagamentoDividido() {
+    painelPagamentoDividido.style.display = 'none';
+    document.getElementById('btnPagamentoDividido').style.display = 'inline-block';
+    campoFormaPagamentoUnica.parentElement.style.display = '';
+    campoFormaPagamentoUnica.required = true;
+    listaPagamentosDivididos.innerHTML = '';
+}
+
+document.getElementById('btnPagamentoDividido').addEventListener('click', entrarModoPagamentoDividido);
+document.getElementById('btnCancelarPagamentoDividido').addEventListener('click', sairModoPagamentoDividido);
+document.getElementById('btnAddPagamento').addEventListener('click', () => {
+    adicionarLinhaPagamento();
+    atualizarResumoPagamentoDividido();
+});
+
 function entrarModoNovo() {
     delete document.getElementById('formLancamento').dataset.editandoId;
     document.getElementById('btnSalvar').textContent = 'Lançar atendimento';
     document.getElementById('btnAddExame').style.display = 'inline-block';
+    document.getElementById('btnPagamentoDividido').style.display = pagamentoEstaDividido() ? 'none' : 'inline-block';
     document.getElementById('labelModoEdicao').style.display = 'none';
     document.getElementById('numero_nf').parentElement.querySelector('label').textContent = 'N\u00ba NF (do recebimento)';
     document.getElementById('tesouraria').parentElement.querySelector('label').textContent = 'Tesouraria feita (recebimento inteiro)';
     limparLinhasExame();
+    sairModoPagamentoDividido();
     document.getElementById('formLancamento').reset();
 }
 
@@ -236,7 +341,7 @@ function renderizarTabela() {
             <td>${mesmoGrupoDoAnterior ? '&#8618;' : l.nomePaciente}</td>
             <td>${l.exame}</td>
             <td>${formatarMoeda(l.valor)}</td>
-            <td>${l.formaPagamento}</td>
+            <td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
             <td>${l.titulo || '-'}</td>
             <td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
@@ -277,6 +382,13 @@ function editarLancamento(id) {
     const l = ultimaLista.find(x => x.id === id);
     if (!l) return;
 
+    // Edicao sempre mexe em UM lancamento por vez (um exame, uma forma de
+    // pagamento) - por isso o modo de pagamento dividido fica indisponivel
+    // aqui, mesmo que o lancamento faca parte de um grupo criado com
+    // pagamento dividido.
+    sairModoPagamentoDividido();
+    document.getElementById('btnPagamentoDividido').style.display = 'none';
+
     document.getElementById('nome_paciente').value = l.nomePaciente;
     document.getElementById('forma_pagamento').value = l.formaPagamento;
     document.getElementById('numero_nf').value = l.numeroNf || '';
@@ -309,7 +421,6 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
     }
 
     const nomePaciente = document.getElementById('nome_paciente').value.trim();
-    const formaPagamento = document.getElementById('forma_pagamento').value;
     const numeroNf = document.getElementById('numero_nf').value.trim();
     const tesouraria = document.getElementById('tesouraria').checked;
 
@@ -323,7 +434,9 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
     try {
         if (editandoId) {
             // Edicao afeta somente o exame desta linha (nao propaga para outros
-            // exames do mesmo recebimento automaticamente).
+            // exames do mesmo recebimento automaticamente). Pagamento dividido
+            // nao se aplica aqui (o botao fica escondido em modo edicao).
+            const formaPagamento = document.getElementById('forma_pagamento').value;
             const linha = listaExames.querySelector('.linha-exame');
             const exame = linha.querySelector('.campo-exame').value;
             const valor = parseFloat(linha.querySelector('.campo-valor').value);
@@ -342,7 +455,8 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             entrarModoNovo();
         } else {
             // Novo atendimento: pode ter varios exames, todos com o mesmo
-            // pagamento/NF/tesouraria, agrupados por um grupoId em comum.
+            // pagamento/NF/tesouraria, agrupados por um grupoId em comum -
+            // a menos que o pagamento esteja dividido (ver abaixo).
             const linhas = Array.from(listaExames.querySelectorAll('.linha-exame'));
             const exames = linhas.map(linha => ({
                 exame: linha.querySelector('.campo-exame').value,
@@ -360,6 +474,65 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             const grupoId = doc(collection(db, 'lancamentos')).id;
             const hoje = dataLocalStr();
             const lote = writeBatch(db);
+
+            if (pagamentoEstaDividido()) {
+                // Pagamento dividido: a divisao vale para o atendimento
+                // INTEIRO (soma de todos os exames), nao exame por exame - por
+                // isso aqui os lancamentos gravados sao, um por forma de
+                // pagamento (nao um por exame). O tipo de exame e o titulo de
+                // cada lancamento viram a juncao de todos os exames deste
+                // atendimento, ja que o valor de cada forma nao corresponde a
+                // um exame especifico. O fechamento do dia (admin/supervisor)
+                // continua somando certo, porque cada parte entra com sua
+                // propria forma de pagamento.
+                const linhasPagamento = Array.from(listaPagamentosDivididos.querySelectorAll('.linha-pagamento-dividido'));
+                const pagamentos = linhasPagamento.map(linha => ({
+                    forma: linha.querySelector('.campo-forma-dividida').value,
+                    valor: parseFloat(linha.querySelector('.campo-valor-dividido').value)
+                }));
+
+                for (const p of pagamentos) {
+                    if (!p.forma || isNaN(p.valor) || p.valor <= 0) {
+                        mostrarErro('Preencha a forma e o valor em todas as linhas de pagamento.');
+                        return;
+                    }
+                }
+
+                if (diferencaPagamentoDividido() !== null) {
+                    mostrarErro('A soma das formas de pagamento precisa ser igual ao total dos exames antes de salvar.');
+                    return;
+                }
+
+                const exameConjunto = exames.map(e => e.exame).join(' + ');
+                const tituloConjunto = exames.map(e => e.titulo).filter(Boolean).join(' + ');
+
+                pagamentos.forEach(p => {
+                    const novaRef = doc(collection(db, 'lancamentos'));
+                    lote.set(novaRef, {
+                        usuarioId: usuarioAtual.uid,
+                        usuarioNome: usuarioAtual.nome,
+                        data: hoje,
+                        nomePaciente,
+                        exame: exameConjunto,
+                        valor: p.valor,
+                        formaPagamento: p.forma,
+                        titulo: tituloConjunto,
+                        numeroNf,
+                        tesouraria,
+                        grupoId,
+                        pagamentoDividido: true,
+                        criadoEm: serverTimestamp(),
+                        editadoEm: null
+                    });
+                });
+
+                await lote.commit();
+                mostrarOk('Atendimento lançado (pagamento em ' + pagamentos.length + ' formas).');
+                entrarModoNovo();
+                return;
+            }
+
+            const formaPagamento = document.getElementById('forma_pagamento').value;
 
             exames.forEach(e => {
                 const novaRef = doc(collection(db, 'lancamentos'));

@@ -229,20 +229,79 @@ function renderizarResumo() {
         <tr><td>${nome}</td><td>${v.qtd}</td><td>${formatarMoeda(v.total)}</td></tr>
     `).join('') || '<tr><td colspan="3" style="color:var(--cinza-texto)">Sem lançamentos.</td></tr>';
 
-    const todos = [...listaDoDia].sort((a, b) => (a.criadoEm?.toMillis?.() || 0) - (b.criadoEm?.toMillis?.() || 0));
+    renderizarTabelaTodos();
+}
+
+// ---------- Ordenacao da tabela "Todos os lancamentos do dia" ----------
+// Por padrao a tabela segue a ordem de criacao (e agrupa visualmente os
+// lancamentos do mesmo atendimento com a seta "->"). Quando a pessoa clica
+// num titulo de coluna, a lista passa a seguir aquele criterio (clicar de
+// novo no mesmo titulo inverte a ordem) - nesse caso o agrupamento visual
+// fica desligado, porque lancamentos do mesmo atendimento podem nao ficar
+// mais lado a lado.
+let ordenacaoTodosCampo = null;
+let ordenacaoTodosDirecao = 'asc';
+
+function valorParaOrdenar(l, campo) {
+    if (campo === 'valor') return l.valor || 0;
+    if (campo === 'tesouraria') return l.tesouraria ? 1 : 0;
+    return (l[campo] || '').toString().toLowerCase();
+}
+
+function compararPorCampo(a, b, campo, direcao) {
+    const va = valorParaOrdenar(a, campo);
+    const vb = valorParaOrdenar(b, campo);
+    let cmp;
+    if (typeof va === 'number' && typeof vb === 'number') {
+        cmp = va - vb;
+    } else {
+        cmp = va.localeCompare(vb, 'pt-BR');
+    }
+    return direcao === 'asc' ? cmp : -cmp;
+}
+
+function renderizarTabelaTodos() {
+    let todos = [...listaDoDia].sort((a, b) => (a.criadoEm?.toMillis?.() || 0) - (b.criadoEm?.toMillis?.() || 0));
+
+    if (ordenacaoTodosCampo) {
+        todos.sort((a, b) => compararPorCampo(a, b, ordenacaoTodosCampo, ordenacaoTodosDirecao));
+    }
+
+    // O agrupamento visual (seta "->" para o mesmo atendimento) so faz
+    // sentido quando a ordem e a de criacao - com ordenacao customizada, os
+    // lancamentos do mesmo grupoId podem nao ficar mais adjacentes.
+    const agruparVisualmente = !ordenacaoTodosCampo;
     let grupoAnteriorTodos = null;
+
     document.getElementById('corpoTodos').innerHTML = todos.map(l => {
-        const mesmoGrupo = l.grupoId && l.grupoId === grupoAnteriorTodos;
+        const mesmoGrupo = agruparVisualmente && l.grupoId && l.grupoId === grupoAnteriorTodos;
         grupoAnteriorTodos = l.grupoId || null;
         return `
         <tr class="${(!l.titulo || !l.tesouraria) ? 'linha-pendente' : ''} ${mesmoGrupo ? 'linha-mesmo-grupo' : 'linha-inicio-grupo'}">
             <td>${l.usuarioNome}</td><td>${mesmoGrupo ? '&#8618;' : l.nomePaciente}</td><td>${l.exame}</td>
-            <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}</td>
+            <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
             <td>${l.titulo || '-'}</td><td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
         </tr>`;
     }).join('') || '<tr><td colspan="8" style="color:var(--cinza-texto)">Sem lançamentos.</td></tr>';
 }
+
+document.querySelectorAll('#tabelaTodos .th-ordenavel').forEach(th => {
+    th.addEventListener('click', () => {
+        const campo = th.dataset.ordenar;
+        if (ordenacaoTodosCampo === campo) {
+            ordenacaoTodosDirecao = ordenacaoTodosDirecao === 'asc' ? 'desc' : 'asc';
+        } else {
+            ordenacaoTodosCampo = campo;
+            ordenacaoTodosDirecao = 'asc';
+        }
+        document.querySelectorAll('#tabelaTodos .th-ordenavel').forEach(outro => {
+            outro.classList.remove('ordenado-asc', 'ordenado-desc');
+        });
+        th.classList.add(ordenacaoTodosDirecao === 'asc' ? 'ordenado-asc' : 'ordenado-desc');
+        renderizarTabelaTodos();
+    });
+});
 
 function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
     return `
