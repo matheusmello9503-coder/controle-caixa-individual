@@ -90,6 +90,7 @@
                                     <th class="th-ordenavel" data-ordenar="titulo">T&iacute;tulo</th>
                                     <th class="th-ordenavel" data-ordenar="numeroNf">N&ordm; NF</th>
                                     <th class="th-ordenavel" data-ordenar="tesouraria">Tesouraria</th>
+                                    <th>A&ccedil;&otilde;es</th>
                                 </tr>
                             </thead>
                             <tbody id="corpoTodos"></tbody>
@@ -156,6 +157,52 @@
         </main>
     </div>
 
+</div>
+
+<div class="modal-overlay" id="modalEditarLancamento" style="display:none">
+    <div class="modal-caixa">
+        <h2 style="margin-top:0">Editar lan&ccedil;amento</h2>
+        <p class="texto-apoio">Como supervisor, voc&ecirc; pode editar este lan&ccedil;amento de qualquer atendente, em qualquer data.</p>
+        <div class="erro" id="msgErroModal"></div>
+        <form id="formEditarLancamento">
+            <div class="form-linha" style="grid-template-columns: 1fr 1fr;">
+                <div class="campo"><label>Paciente</label><input type="text" id="editNomePaciente" required></div>
+                <div class="campo">
+                    <label>Exame</label>
+                    <select id="editExame" required>
+                        <option value="RM">RM</option>
+                        <option value="TC">TC</option>
+                        <option value="US">US</option>
+                        <option value="RX">RX</option>
+                        <option value="DO">DO</option>
+                        <option value="MMG">MMG</option>
+                        <option value="BIO">BIO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-linha" style="grid-template-columns: 1fr 1fr; margin-top:10px">
+                <div class="campo"><label>Valor (R$)</label><input type="number" id="editValor" step="0.01" min="0" required></div>
+                <div class="campo">
+                    <label>Pagamento</label>
+                    <select id="editFormaPagamento" required>
+                        <option value="Debito">D&eacute;bito</option>
+                        <option value="Credito">Cr&eacute;dito</option>
+                        <option value="Especie">Esp&eacute;cie</option>
+                        <option value="Pix">Pix</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-linha" style="grid-template-columns: 1fr 1fr auto; margin-top:10px; align-items:end">
+                <div class="campo"><label>T&iacute;tulo</label><input type="text" id="editTitulo"></div>
+                <div class="campo"><label>N&ordm; NF</label><input type="text" id="editNumeroNf"></div>
+                <div class="check-linha"><input type="checkbox" id="editTesouraria"><label for="editTesouraria">Tesouraria feita</label></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:18px">
+                <button type="submit" class="botao">Salvar altera&ccedil;&otilde;es</button>
+                <button type="button" class="botao secundario" id="btnCancelarEdicaoModal">Cancelar</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script type="module" src="js/supervisor.js"></script>
