@@ -38,6 +38,7 @@
     --tabela-cabecalho-hover: #d9e6fb;
     --tabela-linha-hover: #fafbff;
     --linha-pendente-fundo: #fffaf0;
+    --linha-exame-fundo: #fafbff;
 }
 
 /* =====================================================
@@ -78,6 +79,7 @@
     --tabela-cabecalho-hover: #2c3d63;
     --tabela-linha-hover: #1b2440;
     --linha-pendente-fundo: #3a3218;
+    --linha-exame-fundo: #1b2440;
 }
 
 * { box-sizing: border-box; }
@@ -175,7 +177,7 @@ h1, h2, h3 { font-family: inherit; }
 }
 
 .cartao-login .logo-topo { display: block; margin: 0 auto 20px; height: 84px; width: auto; }
-.cartao-login h1 { font-size: 1.4rem; color: var(--azul-escuro); margin: 0 0 4px; font-weight: 700; text-align: center; }
+.cartao-login h1 { font-size: 1.4rem; color: var(--tabela-cabecalho-texto); margin: 0 0 4px; font-weight: 700; text-align: center; }
 .cartao-login .subtitulo { font-size: 0.88rem; color: var(--cinza-texto); text-align: center; margin: 0 0 26px; }
 
 .campo { text-align: left; margin-bottom: 16px; }
@@ -223,7 +225,7 @@ h1, h2, h3 { font-family: inherit; }
     font-weight: 600;
     text-decoration: underline;
 }
-.botao.link:hover { background: none; color: var(--azul-escuro); }
+.botao.link:hover { background: none; color: var(--azul-vivo); }
 
 .resumo-pagamento-dividido-ok { color: var(--verde-ok); }
 .resumo-pagamento-dividido-erro { color: var(--vermelho-alerta); }
@@ -402,7 +404,7 @@ h1, h2, h3 { font-family: inherit; }
     top: 0;
     z-index: 20;
 }
-.topbar-titulo { font-size: 1.05rem; font-weight: 700; color: var(--azul-escuro); }
+.topbar-titulo { font-size: 1.05rem; font-weight: 700; color: var(--tabela-cabecalho-texto); }
 .topbar-titulo .sub { display: block; font-size: 0.76rem; font-weight: 500; color: var(--cinza-texto-suave); margin-top: 1px; }
 
 .topbar-usuario { display: flex; align-items: center; gap: 12px; }
@@ -469,7 +471,7 @@ h1, h2, h3 { font-family: inherit; }
     font-size: 0.78rem; font-weight: 700;
     flex-shrink: 0;
 }
-.usuario-nome { font-weight: 600; color: var(--azul-escuro); font-size: 0.85rem; }
+.usuario-nome { font-weight: 600; color: var(--tabela-cabecalho-texto); font-size: 0.85rem; }
 .usuario-nome .cargo {
     display: inline-block;
     font-weight: 700;
@@ -573,7 +575,7 @@ h1, h2, h3 { font-family: inherit; }
     box-shadow: var(--sombra);
 }
 .cartao-resumo .rotulo { font-size: 0.72rem; color: var(--cinza-texto-suave); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; white-space: nowrap; }
-.cartao-resumo .valor { font-size: 1.2rem; font-weight: 700; color: var(--azul-escuro); margin-top: 4px; letter-spacing: -0.2px; white-space: nowrap; }
+.cartao-resumo .valor { font-size: 1.2rem; font-weight: 700; color: var(--tabela-cabecalho-texto); margin-top: 4px; letter-spacing: -0.2px; white-space: nowrap; }
 .cartao-resumo .qtd { font-size: 0.76rem; color: var(--cinza-texto-suave); margin-top: 2px; white-space: nowrap; }
 
 /* Cartao "hero": a UNICA metrica que importa mais que as outras num
@@ -646,7 +648,7 @@ h1, h2, h3 { font-family: inherit; }
     max-height: 90vh;
     overflow-y: auto;
 }
-.modal-caixa h2 { color: var(--azul-escuro); }
+.modal-caixa h2 { color: var(--tabela-cabecalho-texto); }
 
 .form-linha {
     display: grid;
@@ -709,7 +711,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .linha-pendente { background: var(--linha-pendente-fundo); }
 
-.rodape-total { font-weight: 800; color: var(--azul-escuro); }
+.rodape-total { font-weight: 800; color: var(--tabela-cabecalho-texto); }
 
 .abas { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--cinza-borda); }
 .aba-item {
@@ -734,7 +736,7 @@ tbody tr:last-child td { border-bottom: none; }
 .status-fechamento.aberto { background: var(--laranja-bg); color: var(--laranja-pendente); }
 .status-fechamento.fechado { background: var(--verde-bg); color: var(--verde-ok); }
 
-.linha-exame { align-items: end; padding: 12px; background: #fafbff; border-radius: 9px; border: 1px solid var(--cinza-borda); margin-bottom: 8px; }
+.linha-exame { align-items: end; padding: 12px; background: var(--linha-exame-fundo); border-radius: 9px; border: 1px solid var(--cinza-borda); margin-bottom: 8px; }
 
 .linha-mesmo-grupo td:first-child { color: #9aa3b8; }
 .linha-mesmo-grupo { border-top: none !important; }
