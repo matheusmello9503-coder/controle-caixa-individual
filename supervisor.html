@@ -76,8 +76,13 @@
                 </div>
 
                 <div class="painel">
-                    <h2>Todos os lan&ccedil;amentos do dia</h2>
-                    <p class="texto-apoio" style="margin-top:-8px">Clique em um t&iacute;tulo da coluna para ordenar por ela (clique de novo para inverter a ordem).</p>
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap">
+                        <div>
+                            <h2 style="margin-bottom:4px">Todos os lan&ccedil;amentos do dia</h2>
+                            <p class="texto-apoio" style="margin-top:0">Clique em um t&iacute;tulo da coluna para ordenar por ela (clique de novo para inverter a ordem).</p>
+                        </div>
+                        <button type="button" class="botao secundario pequeno" id="btnExportarPlanilha">&#128190; Exportar planilha (.xlsx)</button>
+                    </div>
                     <div class="tabela-scroll">
                         <table id="tabelaTodos">
                             <thead>
@@ -205,6 +210,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script type="module" src="js/supervisor.js"></script>
 </body>
 </html>
