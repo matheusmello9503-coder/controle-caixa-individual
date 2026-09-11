@@ -1,6 +1,6 @@
 import { onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-    doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, getDocs
+    doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { auth, db, obterAuthSecundario } from "./firebase-init.js";
 import { FUSO_HORARIO } from "./firebase-config.js";
@@ -282,8 +282,94 @@ function renderizarTabelaTodos() {
             <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
             <td>${l.titulo || '-'}</td><td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
+            <td>
+                <button class="botao secundario pequeno" data-editar-todos="${l.id}">Editar</button>
+                <button class="botao perigo pequeno" data-excluir-todos="${l.id}">Excluir</button>
+            </td>
         </tr>`;
-    }).join('') || '<tr><td colspan="8" style="color:var(--cinza-texto)">Sem lançamentos.</td></tr>';
+    }).join('') || '<tr><td colspan="9" style="color:var(--cinza-texto)">Sem lançamentos.</td></tr>';
+
+    document.querySelectorAll('[data-editar-todos]').forEach(btn => {
+        btn.addEventListener('click', () => abrirModalEdicao(btn.dataset.editarTodos));
+    });
+    document.querySelectorAll('[data-excluir-todos]').forEach(btn => {
+        btn.addEventListener('click', () => excluirLancamentoTodos(btn.dataset.excluirTodos));
+    });
+}
+
+// ---------- Editar/excluir qualquer lancamento (admin/supervisor) ----------
+// Como admin e supervisor nao tem nenhuma restricao de dia, horario ou
+// atendente nas regras do Firestore para lancamentos (ver firestore.rules),
+// esta tela permite corrigir ou remover QUALQUER lancamento de QUALQUER
+// atendente, na data que estiver selecionada acima (que por sua vez pode
+// ser qualquer data, passada ou futura).
+const modalEditarLancamento = document.getElementById('modalEditarLancamento');
+const formEditarLancamento = document.getElementById('formEditarLancamento');
+
+function abrirModalEdicao(id) {
+    const l = listaDoDia.find(x => x.id === id);
+    if (!l) return;
+    document.getElementById('editNomePaciente').value = l.nomePaciente;
+    document.getElementById('editExame').value = l.exame;
+    document.getElementById('editValor').value = l.valor;
+    document.getElementById('editFormaPagamento').value = l.formaPagamento;
+    document.getElementById('editTitulo').value = l.titulo || '';
+    document.getElementById('editNumeroNf').value = l.numeroNf || '';
+    document.getElementById('editTesouraria').checked = !!l.tesouraria;
+    formEditarLancamento.dataset.editandoId = id;
+    document.getElementById('msgErroModal').classList.remove('mostrar');
+    modalEditarLancamento.style.display = 'flex';
+}
+
+function fecharModalEdicao() {
+    modalEditarLancamento.style.display = 'none';
+    delete formEditarLancamento.dataset.editandoId;
+}
+
+document.getElementById('btnCancelarEdicaoModal').addEventListener('click', fecharModalEdicao);
+modalEditarLancamento.addEventListener('click', (ev) => {
+    if (ev.target === modalEditarLancamento) fecharModalEdicao();
+});
+
+formEditarLancamento.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const id = formEditarLancamento.dataset.editandoId;
+    if (!id) return;
+
+    const nomePaciente = document.getElementById('editNomePaciente').value.trim();
+    const exame = document.getElementById('editExame').value;
+    const valor = parseFloat(document.getElementById('editValor').value);
+    const formaPagamento = document.getElementById('editFormaPagamento').value;
+    const titulo = document.getElementById('editTitulo').value.trim();
+    const numeroNf = document.getElementById('editNumeroNf').value.trim();
+    const tesouraria = document.getElementById('editTesouraria').checked;
+
+    if (!nomePaciente || !exame || isNaN(valor) || valor <= 0) {
+        mostrarErro('Preencha paciente, exame e valor corretamente.', 'msgErroModal');
+        return;
+    }
+
+    try {
+        await updateDoc(doc(db, 'lancamentos', id), {
+            nomePaciente, exame, valor, formaPagamento, titulo, numeroNf, tesouraria
+        });
+        fecharModalEdicao();
+        mostrarOk('Lançamento atualizado.');
+    } catch (e) {
+        mostrarErro('Não foi possível salvar: ' + e.message, 'msgErroModal');
+    }
+});
+
+async function excluirLancamentoTodos(id) {
+    const l = listaDoDia.find(x => x.id === id);
+    const descricao = l ? `${l.nomePaciente} - ${l.exame} - ${formatarMoeda(l.valor)}` : 'este lançamento';
+    if (!confirm(`Excluir ${descricao}? Essa ação não pode ser desfeita.`)) return;
+    try {
+        await deleteDoc(doc(db, 'lancamentos', id));
+        mostrarOk('Lançamento excluído.');
+    } catch (e) {
+        mostrarErro('Não foi possível excluir: ' + e.message);
+    }
 }
 
 document.querySelectorAll('#tabelaTodos .th-ordenavel').forEach(th => {

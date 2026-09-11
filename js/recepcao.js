@@ -23,23 +23,29 @@ function dataLocalStr() {
 }
 
 // Data que a tela esta exibindo no momento (segue o campo "Data" no topo).
-// So e possivel LANCAR um atendimento novo no dia de hoje. Ja EDITAR/EXCLUIR
-// um lancamento existente e permitido em hoje OU ontem (no maximo 1 dia
-// atras) - o firestore.rules ja aplica essa mesma regra no servidor (por
+// Tanto LANCAR um atendimento novo quanto EDITAR/EXCLUIR um existente sao
+// permitidos dentro da mesma janela: hoje ou ate 3 dias atras (nunca no
+// futuro) - o firestore.rules ja aplica essa mesma regra no servidor (por
 // data local, nao por um numero fixo de horas); aqui a tela so espelha isso
 // para ficar claro o motivo, em vez de a pessoa tentar e levar um erro de
-// permissao sem entender.
+// permissao sem entender. Essa janela existe para cobrir situacoes como uma
+// queda de energia que impede fechar os lancamentos no dia certo.
+const JANELA_DIAS_LANCAMENTO = 3;
+
 function dataEstaSelecionada() {
     return document.getElementById('dataSelecionada').value;
+}
+function diferencaDiasDaSelecionada() {
+    const hoje = new Date(dataLocalStr() + 'T00:00:00');
+    const selecionada = new Date(dataEstaSelecionada() + 'T00:00:00');
+    return Math.round((hoje - selecionada) / (24 * 60 * 60 * 1000));
 }
 function estaVendoHoje() {
     return dataEstaSelecionada() === dataLocalStr();
 }
-function estaVendoHojeOuOntem() {
-    const hoje = new Date(dataLocalStr() + 'T00:00:00');
-    const selecionada = new Date(dataEstaSelecionada() + 'T00:00:00');
-    const diffDias = Math.round((hoje - selecionada) / (24 * 60 * 60 * 1000));
-    return diffDias === 0 || diffDias === 1;
+function dentroDaJanelaDeLancamento() {
+    const diffDias = diferencaDiasDaSelecionada();
+    return diffDias >= 0 && diffDias <= JANELA_DIAS_LANCAMENTO;
 }
 
 function horaLocalAtual() {
@@ -257,20 +263,24 @@ document.getElementById('btnDataHoje').addEventListener('click', () => {
 });
 
 // Mostra/esconde o formulario de novo atendimento e o aviso, e ajusta os
-// titulos da tela, conforme a data selecionada e ou nao o dia de hoje.
-// Lancar um atendimento NOVO so e possivel hoje; editar/excluir um
-// lancamento existente e permitido tambem no dia anterior (o aviso muda de
-// texto para deixar essa diferenca clara).
+// titulos da tela, conforme a data selecionada. Lancar um atendimento novo
+// e editar/excluir um existente seguem a MESMA janela agora (hoje ou ate 3
+// dias atras) - pensada para casos como uma queda de energia que impede
+// fechar os lancamentos no dia certo. Fora dessa janela, a tela vira
+// somente consulta.
 function atualizarModoSomenteLeitura() {
     const vendoHoje = estaVendoHoje();
-    const podeEditar = estaVendoHojeOuOntem();
-    document.getElementById('formLancamento').style.display = vendoHoje ? 'block' : 'none';
+    const dentroDaJanela = dentroDaJanelaDeLancamento();
+    document.getElementById('formLancamento').style.display = dentroDaJanela ? 'block' : 'none';
 
     const aviso = document.getElementById('avisoDataPassada');
     aviso.style.display = vendoHoje ? 'none' : 'block';
-    aviso.textContent = podeEditar
-        ? 'Você está vendo o dia anterior. Ainda é possível editar ou excluir esses atendimentos, mas só é possível lançar um atendimento novo no dia de hoje.'
-        : 'Você está vendo um dia diferente de hoje/ontem. Este período fica disponível somente para consulta.';
+    if (dentroDaJanela) {
+        const diffDias = diferencaDiasDaSelecionada();
+        aviso.textContent = `Você está lançando um atendimento com data retroativa (${diffDias} dia(s) atrás). Use isso apenas para regularizar atendimentos que não puderam ser lançados no dia certo (ex.: queda de energia). Também é possível editar ou excluir os lançamentos já existentes deste dia.`;
+    } else {
+        aviso.textContent = `Você está vendo um dia fora da janela de lançamento (mais de ${JANELA_DIAS_LANCAMENTO} dias atrás, ou uma data futura). Este período fica disponível somente para consulta.`;
+    }
 
     const dataFormatada = new Date(dataEstaSelecionada() + 'T00:00:00').toLocaleDateString('pt-BR');
     document.getElementById('tituloTabelaAtendimentos').textContent = vendoHoje
@@ -280,7 +290,7 @@ function atualizarModoSomenteLeitura() {
         ? 'Meus atendimentos '
         : 'Atendimentos de ' + dataFormatada + ' ';
 
-    if (!vendoHoje) entrarModoNovo();
+    entrarModoNovo();
 }
 
 function iniciarOuvintedeLancamentos() {
@@ -322,10 +332,11 @@ function renderizarTabela() {
     corpo.innerHTML = '';
     let total = 0;
     let grupoAnterior = null;
-    // So e possivel editar/excluir em hoje ou ontem (o firestore.rules
-    // bloqueia o resto no servidor); em dias mais antigos a tabela fica so
-    // para consulta, sem mostrar botoes que iriam falhar se clicados.
-    const podeEditar = estaVendoHojeOuOntem();
+    // So e possivel editar/excluir dentro da janela de lancamento (hoje ou
+    // ate 3 dias atras - o firestore.rules bloqueia o resto no servidor);
+    // fora dela a tabela fica so para consulta, sem mostrar botoes que
+    // iriam falhar se clicados.
+    const podeEditar = dentroDaJanelaDeLancamento();
 
     ultimaLista.forEach(l => {
         total += l.valor;
@@ -374,7 +385,7 @@ async function excluirLancamento(id) {
     try {
         await deleteDoc(doc(db, 'lancamentos', id));
     } catch (e) {
-        mostrarErro('Não foi possível excluir (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que ontem.');
+        mostrarErro('Não foi possível excluir (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que 3 dias.');
     }
 }
 
@@ -472,7 +483,10 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             }
 
             const grupoId = doc(collection(db, 'lancamentos')).id;
-            const hoje = dataLocalStr();
+            // Usa a data SELECIONADA na tela (nao necessariamente hoje) - e o
+            // que permite lancar um atendimento retroativo, dentro da janela
+            // de ate 3 dias, quando algo impediu o lancamento no dia certo.
+            const dataDoLancamento = dataEstaSelecionada();
             const lote = writeBatch(db);
 
             if (pagamentoEstaDividido()) {
@@ -511,7 +525,7 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
                     lote.set(novaRef, {
                         usuarioId: usuarioAtual.uid,
                         usuarioNome: usuarioAtual.nome,
-                        data: hoje,
+                        data: dataDoLancamento,
                         nomePaciente,
                         exame: exameConjunto,
                         valor: p.valor,
@@ -539,7 +553,7 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
                 lote.set(novaRef, {
                     usuarioId: usuarioAtual.uid,
                     usuarioNome: usuarioAtual.nome,
-                    data: hoje,
+                    data: dataDoLancamento,
                     nomePaciente,
                     exame: e.exame,
                     valor: e.valor,
@@ -558,7 +572,7 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             entrarModoNovo();
         }
     } catch (e) {
-        mostrarErro('Não foi possível salvar (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que ontem.');
+        mostrarErro('Não foi possível salvar (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que 3 dias.');
     }
 });
 
