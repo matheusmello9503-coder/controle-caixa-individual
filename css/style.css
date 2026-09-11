@@ -39,6 +39,23 @@
     --tabela-linha-hover: #fafbff;
     --linha-pendente-fundo: #fffaf0;
     --linha-exame-fundo: #fafbff;
+
+    /* Texto de destaque (marca) usado sobre fundos que podem ser claros
+       OU escuros - botao secundario, selos, links de marca. --azul-cerdil
+       continua existindo para background (onde o texto por cima e branco
+       fixo); este token e so para quando a propria cor de marca vira
+       COR DE TEXTO, porque no escuro --azul-cerdil fica escuro demais
+       sobre um fundo tambem escuro (mesmo bug ja corrigido em outros
+       lugares com --tabela-cabecalho-texto, agora aplicado aqui tambem). */
+    --acento-texto: var(--azul-cerdil);
+
+    /* Fundo do botao "perigo" (Excluir/Remover): precisa de um vermelho
+       forte o bastante para o texto branco por cima manter contraste,
+       diferente de --vermelho-alerta (que no escuro fica mais claro, de
+       proposito, para funcionar como COR DE TEXTO de erro sobre fundo
+       escuro - o oposto do que um background solido precisa). */
+    --perigo-fundo: var(--vermelho-alerta);
+    --perigo-fundo-hover: #a02a22;
 }
 
 /* =====================================================
@@ -80,6 +97,9 @@
     --tabela-linha-hover: #1b2440;
     --linha-pendente-fundo: #3a3218;
     --linha-exame-fundo: #1b2440;
+    --acento-texto: #6ea0f2;
+    --perigo-fundo: #b53a30;
+    --perigo-fundo-hover: #96291f;
 }
 
 * { box-sizing: border-box; }
@@ -211,10 +231,10 @@ h1, h2, h3 { font-family: inherit; }
     transition: background 0.15s ease;
 }
 .botao:hover { background: var(--azul-escuro); }
-.botao.secundario { background: var(--branco); color: var(--azul-cerdil); border: 1px solid var(--cinza-borda); }
+.botao.secundario { background: var(--branco); color: var(--acento-texto); border: 1px solid var(--cinza-borda); }
 .botao.secundario:hover { background: var(--azul-claro); border-color: var(--azul-vivo); }
-.botao.perigo { background: var(--vermelho-alerta); }
-.botao.perigo:hover { background: #a02a22; }
+.botao.perigo { background: var(--perigo-fundo); }
+.botao.perigo:hover { background: var(--perigo-fundo-hover); }
 .botao.pequeno { padding: 7px 12px; font-size: 0.78rem; }
 .botao:disabled { opacity: 0.5; cursor: not-allowed; }
 .botao.link {
@@ -458,7 +478,7 @@ h1, h2, h3 { font-family: inherit; }
     font-family: inherit;
 }
 .nav-rapida-item:hover { background: var(--azul-claro); text-decoration: none; }
-.nav-rapida-item.atual { background: var(--azul-claro); color: var(--azul-cerdil); }
+.nav-rapida-item.atual { background: var(--azul-claro); color: var(--acento-texto); }
 .nav-rapida-item .icone { width: 18px; text-align: center; flex-shrink: 0; }
 .nav-rapida-separador { height: 1px; background: var(--cinza-borda); margin: 6px 4px; }
 
@@ -725,7 +745,7 @@ tbody tr:last-child td { border-bottom: none; }
     margin-bottom: -1px;
     border: 1px solid transparent;
 }
-.aba-item.ativa { background: var(--branco); border: 1px solid var(--cinza-borda); border-bottom-color: var(--branco); color: var(--azul-cerdil); }
+.aba-item.ativa { background: var(--branco); border: 1px solid var(--cinza-borda); border-bottom-color: var(--branco); color: var(--acento-texto); }
 
 .linha-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
 
@@ -743,23 +763,21 @@ tbody tr:last-child td { border-bottom: none; }
 .linha-inicio-grupo td { border-top: 2px solid var(--cinza-borda); }
 
 /* ANEXO 1: quando um atendimento tem mais de um exame (mesmo grupoId),
-   mostra o valor total daquele paciente junto do nome, na primeira linha
-   do grupo - assim a recepcao ve de cara quanto cobrar no total, sem
-   precisar somar as linhas do grupo de cabeca. So aparece quando ha mais
-   de 1 exame; num atendimento de exame unico o valor da linha ja E o
-   total, entao o selo seria redundante. */
-.selo-total-grupo {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 2px 9px;
-    border-radius: 20px;
-    font-size: 0.72rem;
-    font-weight: 700;
+   uma linha extra fecha o grupo somando tudo - como o subtotal de uma
+   fatura. Assim a recepcao ve de cara quanto cobrar no total, sem
+   precisar somar as linhas do grupo de cabeca, e o nome do paciente
+   continua limpo (sem nada colado nele). So aparece quando ha mais de 1
+   exame; num atendimento de exame unico o valor da linha ja E o total. */
+.linha-subtotal-grupo td {
     background: var(--azul-claro);
-    color: var(--azul-cerdil);
-    white-space: nowrap;
-    vertical-align: middle;
+    color: var(--acento-texto);
+    font-weight: 700;
+    font-size: 0.82rem;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    border-top: none;
 }
+.linha-subtotal-grupo .rotulo-subtotal-grupo { color: var(--cinza-texto); font-weight: 600; }
 
 .texto-apoio { font-size: 0.84rem; color: var(--cinza-texto-suave); margin: -8px 0 16px; }
 
