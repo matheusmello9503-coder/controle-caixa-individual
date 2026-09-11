@@ -355,7 +355,7 @@ function renderizarTabela() {
     const podeEditar = dentroDaJanelaDeLancamento();
     const { somaPorGrupo, qtdPorGrupo } = totaisPorGrupo(ultimaLista);
 
-    ultimaLista.forEach(l => {
+    ultimaLista.forEach((l, indice) => {
         total += l.valor;
         const tr = document.createElement('tr');
         const pendente = !l.titulo || !l.tesouraria;
@@ -365,13 +365,8 @@ function renderizarTabela() {
         tr.classList.add(mesmoGrupoDoAnterior ? 'linha-mesmo-grupo' : 'linha-inicio-grupo');
         grupoAnterior = l.grupoId || null;
 
-        const temMaisDeUmExame = l.grupoId && qtdPorGrupo[l.grupoId] > 1;
-        const seloTotalGrupo = (!mesmoGrupoDoAnterior && temMaisDeUmExame)
-            ? `<span class="selo-total-grupo" title="Total deste atendimento (${qtdPorGrupo[l.grupoId]} exames)">Total: ${formatarMoeda(somaPorGrupo[l.grupoId])}</span>`
-            : '';
-
         tr.innerHTML = `
-            <td>${mesmoGrupoDoAnterior ? '&#8618;' : l.nomePaciente}${seloTotalGrupo}</td>
+            <td>${mesmoGrupoDoAnterior ? '&#8618;' : l.nomePaciente}</td>
             <td>${l.exame}</td>
             <td>${formatarMoeda(l.valor)}</td>
             <td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
@@ -386,6 +381,21 @@ function renderizarTabela() {
             </td>
         `;
         corpo.appendChild(tr);
+
+        // ANEXO 1: ao fechar o grupo (proximo lancamento e de outro
+        // atendimento, ou este e o ultimo da lista), soma tudo numa linha
+        // de subtotal - so quando o grupo teve mais de 1 exame.
+        const proximo = ultimaLista[indice + 1];
+        const fechandoGrupo = l.grupoId && (!proximo || proximo.grupoId !== l.grupoId);
+        if (fechandoGrupo && qtdPorGrupo[l.grupoId] > 1) {
+            const trSubtotal = document.createElement('tr');
+            trSubtotal.classList.add('linha-subtotal-grupo');
+            trSubtotal.innerHTML = `
+                <td colspan="2" class="rotulo-subtotal-grupo">Total do atendimento (${qtdPorGrupo[l.grupoId]} exames)</td>
+                <td colspan="6">${formatarMoeda(somaPorGrupo[l.grupoId])}</td>
+            `;
+            corpo.appendChild(trSubtotal);
+        }
     });
 
     if (ultimaLista.length === 0) {

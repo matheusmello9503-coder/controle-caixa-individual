@@ -278,16 +278,13 @@ function renderizarTabelaTodos() {
     let grupoAnteriorTodos = null;
     const { somaPorGrupo, qtdPorGrupo } = totaisPorGrupo(todos);
 
-    document.getElementById('corpoTodos').innerHTML = todos.map(l => {
+    document.getElementById('corpoTodos').innerHTML = todos.map((l, indice) => {
         const mesmoGrupo = agruparVisualmente && l.grupoId && l.grupoId === grupoAnteriorTodos;
         grupoAnteriorTodos = l.grupoId || null;
-        const temMaisDeUmExame = agruparVisualmente && l.grupoId && qtdPorGrupo[l.grupoId] > 1;
-        const seloTotalGrupo = (!mesmoGrupo && temMaisDeUmExame)
-            ? `<span class="selo-total-grupo" title="Total deste atendimento (${qtdPorGrupo[l.grupoId]} exames)">Total: ${formatarMoeda(somaPorGrupo[l.grupoId])}</span>`
-            : '';
-        return `
+
+        const linha = `
         <tr class="${(!l.titulo || !l.tesouraria) ? 'linha-pendente' : ''} ${mesmoGrupo ? 'linha-mesmo-grupo' : 'linha-inicio-grupo'}">
-            <td>${l.usuarioNome}</td><td>${mesmoGrupo ? '&#8618;' : l.nomePaciente}${seloTotalGrupo}</td><td>${l.exame}</td>
+            <td>${l.usuarioNome}</td><td>${mesmoGrupo ? '&#8618;' : l.nomePaciente}</td><td>${l.exame}</td>
             <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
             <td>${l.titulo || '-'}</td><td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
@@ -296,6 +293,20 @@ function renderizarTabelaTodos() {
                 <button class="botao perigo pequeno" data-excluir-todos="${l.id}">Excluir</button>
             </td>
         </tr>`;
+
+        // ANEXO 1: ao fechar o grupo (proximo lancamento e de outro
+        // atendimento, ou este e o ultimo), soma tudo numa linha de
+        // subtotal - so quando a lista segue na ordem de criacao (mesma
+        // condicao do agrupamento visual) e o grupo teve mais de 1 exame.
+        const proximo = todos[indice + 1];
+        const fechandoGrupo = agruparVisualmente && l.grupoId && (!proximo || proximo.grupoId !== l.grupoId);
+        const linhaSubtotal = (fechandoGrupo && qtdPorGrupo[l.grupoId] > 1) ? `
+        <tr class="linha-subtotal-grupo">
+            <td colspan="3" class="rotulo-subtotal-grupo">Total do atendimento (${qtdPorGrupo[l.grupoId]} exames)</td>
+            <td colspan="6">${formatarMoeda(somaPorGrupo[l.grupoId])}</td>
+        </tr>` : '';
+
+        return linha + linhaSubtotal;
     }).join('') || '<tr><td colspan="9" style="color:var(--cinza-texto)">Sem lançamentos.</td></tr>';
 
     document.querySelectorAll('[data-editar-todos]').forEach(btn => {
