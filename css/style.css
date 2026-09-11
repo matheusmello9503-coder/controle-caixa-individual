@@ -15,10 +15,69 @@
     --laranja-bg: #fdf1de;
     --fundo: #f3f5fa;
     --branco: #ffffff;
+    --texto-principal: #1f2430;
     --sombra: 0 1px 2px rgba(18, 40, 92, 0.06), 0 8px 24px rgba(18, 40, 92, 0.05);
     --sidebar-largura: 244px;
     --topbar-altura: 64px;
     --raio: 12px;
+
+    /* Tokens da sidebar - isolados do resto para poder trocar so eles no
+       modo escuro sem quebrar o gradiente/contraste calculado a dedo. */
+    --sidebar-grad-inicio: var(--azul-escuro);
+    --sidebar-grad-fim: #0e1f47;
+    --sidebar-link-texto: #aebbdb;
+    --sidebar-secao-texto: #6d7db3;
+    --sidebar-rodape-texto: #7c8ab8;
+
+    /* Texto do cabecalho de tabela e titulos de painel: precisa continuar
+       lendo bem tanto no fundo claro (--azul-claro bem claro) quanto no
+       escuro (--azul-claro bem escuro) - por isso um token proprio, em
+       vez de reusar --azul-escuro (que no escuro fica escuro demais
+       sobre um fundo tambem escuro). */
+    --tabela-cabecalho-texto: var(--azul-escuro);
+    --tabela-cabecalho-hover: #d9e6fb;
+    --tabela-linha-hover: #fafbff;
+    --linha-pendente-fundo: #fffaf0;
+}
+
+/* =====================================================
+   MODO ESCURO
+   Mesmos nomes de variavel, valores trocados - todo o resto do arquivo
+   (que so usa var(--...)) muda de cor automaticamente. Fica atras de um
+   atributo no <html> (nao prefers-color-scheme puro) para a pessoa poder
+   escolher manualmente e a escolha ser respeitada mesmo se o sistema
+   operacional dela estiver diferente.
+   ===================================================== */
+:root[data-theme="dark"] {
+    --azul-cerdil: #2f5bb0;
+    --azul-escuro: #17335e;
+    --azul-vivo: #4b7bd6;
+    --azul-claro: #1c2947;
+    --azul-claro2: #24325a;
+    --cinza-borda: #2c3550;
+    --cinza-texto: #b7bfd6;
+    --cinza-texto-suave: #8791ac;
+    --verde-ok: #4ecb85;
+    --verde-bg: #163527;
+    --vermelho-alerta: #ef6b62;
+    --vermelho-bg: #3a2027;
+    --laranja-pendente: #e0a542;
+    --laranja-bg: #3a2e18;
+    --fundo: #0f1526;
+    --branco: #161d34;
+    --texto-principal: #e7eaf5;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+
+    --sidebar-grad-inicio: #0a1024;
+    --sidebar-grad-fim: #05070f;
+    --sidebar-link-texto: #9aa6c8;
+    --sidebar-secao-texto: #6b76a0;
+    --sidebar-rodape-texto: #6b76a0;
+
+    --tabela-cabecalho-texto: #cfe0ff;
+    --tabela-cabecalho-hover: #2c3d63;
+    --tabela-linha-hover: #1b2440;
+    --linha-pendente-fundo: #3a3218;
 }
 
 * { box-sizing: border-box; }
@@ -32,8 +91,9 @@ body {
     margin: 0;
     font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
     background: var(--fundo);
-    color: #1f2430;
+    color: var(--texto-principal);
     line-height: 1.5;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 a { color: var(--azul-vivo); text-decoration: none; }
@@ -128,7 +188,7 @@ h1, h2, h3 { font-family: inherit; }
     font-size: 0.92rem;
     font-family: inherit;
     background: var(--branco);
-    color: #1f2430;
+    color: var(--texto-principal);
 }
 .campo input:focus, .campo select:focus, .campo textarea:focus {
     outline: none;
@@ -225,7 +285,7 @@ h1, h2, h3 { font-family: inherit; }
 .perfil-pill.recepcao { background: var(--azul-vivo); }
 .perfil-pill.supervisor { background: var(--laranja-pendente); }
 .perfil-pill.admin { background: var(--verde-ok); }
-.perfil-item strong { color: #1f2430; }
+.perfil-item strong { color: var(--texto-principal); }
 
 @media (max-width: 860px) {
     .tela-login { grid-template-columns: 1fr; }
@@ -243,7 +303,7 @@ h1, h2, h3 { font-family: inherit; }
 }
 
 .sidebar {
-    background: linear-gradient(180deg, var(--azul-escuro) 0%, #0e1f47 100%);
+    background: linear-gradient(180deg, var(--sidebar-grad-inicio) 0%, var(--sidebar-grad-fim) 100%);
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -285,7 +345,7 @@ h1, h2, h3 { font-family: inherit; }
     gap: 10px;
     padding: 9px 12px 9px 10px;
     border-radius: 8px;
-    color: #aebbdb;
+    color: var(--sidebar-link-texto);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -313,7 +373,7 @@ h1, h2, h3 { font-family: inherit; }
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #6d7db3;
+    color: var(--sidebar-secao-texto);
     padding: 14px 10px 6px;
 }
 
@@ -324,11 +384,11 @@ h1, h2, h3 { font-family: inherit; }
 }
 .sidebar-marca-rodape {
     font-size: 0.68rem;
-    color: #7c8ab8;
+    color: var(--sidebar-rodape-texto);
     padding: 0 2px 10px;
     line-height: 1.5;
 }
-.sidebar-marca-rodape strong { color: #aebbdb; display: block; font-size: 0.7rem; }
+.sidebar-marca-rodape strong { color: var(--sidebar-link-texto); display: block; font-size: 0.7rem; }
 
 .topbar {
     height: var(--topbar-altura);
@@ -388,7 +448,7 @@ h1, h2, h3 { font-family: inherit; }
     border-radius: 8px;
     border: none;
     background: none;
-    color: #1f2430;
+    color: var(--texto-principal);
     font-size: 0.88rem;
     font-weight: 600;
     text-align: left;
@@ -410,8 +470,55 @@ h1, h2, h3 { font-family: inherit; }
     flex-shrink: 0;
 }
 .usuario-nome { font-weight: 600; color: var(--azul-escuro); font-size: 0.85rem; }
-.usuario-nome .cargo { display: block; font-weight: 500; font-size: 0.72rem; color: var(--cinza-texto-suave); margin-top: -1px; }
+.usuario-nome .cargo {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 0.62rem;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--azul-vivo);
+    background: var(--azul-claro);
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-top: 3px;
+}
 .usuario-data { color: var(--cinza-texto-suave); font-size: 0.82rem; }
+
+/* ---- Botao de tema (claro/escuro), dentro do menu de navegacao rapida ---- */
+.nav-rapida-tema {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--texto-principal);
+}
+.interruptor-tema {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    border-radius: 20px;
+    background: var(--cinza-borda);
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+}
+.interruptor-tema::before {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease;
+}
+.interruptor-tema.ativo { background: var(--azul-cerdil); }
+.interruptor-tema.ativo::before { transform: translateX(18px); }
 
 .conteudo {
     padding: clamp(16px, 1.8vw, 26px) clamp(16px, 2.4vw, 36px) 50px;
@@ -427,12 +534,26 @@ h1, h2, h3 { font-family: inherit; }
 /* =====================================================
    CARTOES DE RESUMO / DASHBOARD
    ===================================================== */
+/* Flex, nao grid com auto-fit: com auto-fit + minmax, quando os cartoes
+   nao enchem a linha toda o navegador reservava "vagas" vazias do mesmo
+   tamanho, que apareciam como caixas em branco depois dos cartoes reais
+   (o problema relatado). Com flex-wrap, cada cartao cresce (flex-grow)
+   para ocupar o espaco sobrando na linha - sem sobra, e funciona igual
+   com 3, 5 ou qualquer outra quantidade de cartoes (Fechamento do dia
+   tem 5 cartoes de forma de pagamento; Historico tem 3). O hero
+   (.destaque) e o rotulo de grupo continuam ocupando a linha toda.*/
 .grade-resumo {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 10px;
     min-height: 12px;
+}
+.grade-resumo .cartao-resumo {
+    flex: 1 1 150px;
+}
+@media (max-width: 460px) {
+    .grade-resumo .cartao-resumo { flex-basis: 100%; }
 }
 /* Enquanto os cartoes ainda nao chegaram (JS ainda buscando os dados),
    mostra um aviso discreto em vez de deixar a area em branco parecendo
@@ -462,7 +583,7 @@ h1, h2, h3 { font-family: inherit; }
    logo abaixo. Os outros cartoes de cada grade ficam no tamanho normal,
    menor, como detalhamento - nunca disputando destaque com o hero. */
 .cartao-resumo.destaque {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -482,7 +603,7 @@ h1, h2, h3 { font-family: inherit; }
    painel (ex.: "Por forma de pagamento"), deixando claro que aqueles
    cartoes menores sao o detalhamento do hero acima. */
 .grupo-rotulo {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -502,7 +623,7 @@ h1, h2, h3 { font-family: inherit; }
     padding: 16px 20px;
     margin-bottom: 16px;
 }
-.painel h2 { font-size: 0.92rem; color: var(--azul-escuro); margin: 0 0 12px; font-weight: 700; }
+.painel h2 { font-size: 0.92rem; color: var(--tabela-cabecalho-texto); margin: 0 0 12px; font-weight: 700; }
 
 .modal-overlay {
     position: fixed;
@@ -516,6 +637,7 @@ h1, h2, h3 { font-family: inherit; }
 }
 .modal-caixa {
     background: var(--branco);
+    color: var(--texto-principal);
     border-radius: var(--raio);
     box-shadow: 0 20px 60px rgba(0,0,0,0.25);
     padding: 24px 26px;
@@ -524,6 +646,7 @@ h1, h2, h3 { font-family: inherit; }
     max-height: 90vh;
     overflow-y: auto;
 }
+.modal-caixa h2 { color: var(--azul-escuro); }
 
 .form-linha {
     display: grid;
@@ -541,7 +664,7 @@ table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 thead th {
     text-align: left;
     background: var(--azul-claro);
-    color: var(--azul-escuro);
+    color: var(--tabela-cabecalho-texto);
     padding: 9px 12px;
     font-weight: 700;
     font-size: 0.76rem;
@@ -556,7 +679,7 @@ th.th-ordenavel {
     user-select: none;
     transition: background 0.15s ease;
 }
-th.th-ordenavel:hover { background: #d9e6fb; }
+th.th-ordenavel:hover { background: var(--tabela-cabecalho-hover); }
 th.th-ordenavel::after {
     content: '';
     display: inline-block;
@@ -567,10 +690,10 @@ th.th-ordenavel::after {
     border-right: 4px solid transparent;
     opacity: 0.35;
 }
-th.th-ordenavel.ordenado-asc::after { border-bottom: 5px solid var(--azul-escuro); opacity: 1; }
-th.th-ordenavel.ordenado-desc::after { border-top: 5px solid var(--azul-escuro); opacity: 1; }
-tbody td { padding: 8px 12px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; }
-tbody tr:hover { background: #fafbff; }
+th.th-ordenavel.ordenado-asc::after { border-bottom: 5px solid var(--tabela-cabecalho-texto); opacity: 1; }
+th.th-ordenavel.ordenado-desc::after { border-top: 5px solid var(--tabela-cabecalho-texto); opacity: 1; }
+tbody td { padding: 8px 12px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; color: var(--texto-principal); }
+tbody tr:hover { background: var(--tabela-linha-hover); }
 tbody tr:last-child td { border-bottom: none; }
 .tabela-scroll { overflow-x: auto; }
 
@@ -584,7 +707,7 @@ tbody tr:last-child td { border-bottom: none; }
 .selo.ok { background: var(--verde-bg); color: var(--verde-ok); }
 .selo.pendente { background: var(--laranja-bg); color: var(--laranja-pendente); }
 
-.linha-pendente { background: #fffaf0; }
+.linha-pendente { background: var(--linha-pendente-fundo); }
 
 .rodape-total { font-weight: 800; color: var(--azul-escuro); }
 
@@ -616,6 +739,25 @@ tbody tr:last-child td { border-bottom: none; }
 .linha-mesmo-grupo td:first-child { color: #9aa3b8; }
 .linha-mesmo-grupo { border-top: none !important; }
 .linha-inicio-grupo td { border-top: 2px solid var(--cinza-borda); }
+
+/* ANEXO 1: quando um atendimento tem mais de um exame (mesmo grupoId),
+   mostra o valor total daquele paciente junto do nome, na primeira linha
+   do grupo - assim a recepcao ve de cara quanto cobrar no total, sem
+   precisar somar as linhas do grupo de cabeca. So aparece quando ha mais
+   de 1 exame; num atendimento de exame unico o valor da linha ja E o
+   total, entao o selo seria redundante. */
+.selo-total-grupo {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--azul-claro);
+    color: var(--azul-cerdil);
+    white-space: nowrap;
+    vertical-align: middle;
+}
 
 .texto-apoio { font-size: 0.84rem; color: var(--cinza-texto-suave); margin: -8px 0 16px; }
 
