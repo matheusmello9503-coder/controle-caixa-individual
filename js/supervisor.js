@@ -243,12 +243,19 @@ function compararPorCampo(a, b, campo, direcao) {
     return direcao === 'asc' ? cmp : -cmp;
 }
 
-function renderizarTabelaTodos() {
+// Mesma ordenacao usada na tabela na tela - reaproveitada tambem na
+// exportacao da planilha, para o arquivo sair na mesma ordem que a pessoa
+// esta vendo no momento.
+function obterListaTodosOrdenada() {
     let todos = [...listaDoDia].sort((a, b) => (a.criadoEm?.toMillis?.() || 0) - (b.criadoEm?.toMillis?.() || 0));
-
     if (ordenacaoTodosCampo) {
         todos.sort((a, b) => compararPorCampo(a, b, ordenacaoTodosCampo, ordenacaoTodosDirecao));
     }
+    return todos;
+}
+
+function renderizarTabelaTodos() {
+    const todos = obterListaTodosOrdenada();
 
     // O agrupamento visual (seta "->" para o mesmo atendimento) so faz
     // sentido quando a ordem e a de criacao - com ordenacao customizada, os
@@ -371,6 +378,81 @@ document.querySelectorAll('#tabelaTodos .th-ordenavel').forEach(th => {
         renderizarTabelaTodos();
     });
 });
+
+// ---------- Exportar planilha (.xlsx) ----------
+// Usa a biblioteca SheetJS (carregada via CDN no HTML) para gerar um
+// arquivo .xlsx de verdade no proprio navegador, sem precisar de nenhum
+// servidor. A planilha sai com duas abas: os lancamentos (na mesma ordem
+// que a tela esta mostrando no momento) e um resumo com os totais, iguais
+// aos que aparecem nos cartoes acima.
+function textoTesouraria(l) {
+    return l.tesouraria ? 'Feita' : 'Pendente';
+}
+
+function montarLinhasPlanilha() {
+    return obterListaTodosOrdenada().map(l => ({
+        'Atendente': l.usuarioNome,
+        'Paciente': l.nomePaciente,
+        'Exame': l.exame,
+        'Valor (R$)': l.valor || 0,
+        'Pagamento': l.formaPagamento,
+        'Pagamento dividido': l.pagamentoDividido ? 'Sim' : 'Não',
+        'Título': l.titulo || '',
+        'Nº NF': l.numeroNf || '',
+        'Tesouraria': textoTesouraria(l)
+    }));
+}
+
+function montarResumoPlanilha() {
+    const mapaFormas = { Debito: { total: 0, qtd: 0 }, Credito: { total: 0, qtd: 0 }, Especie: { total: 0, qtd: 0 }, Pix: { total: 0, qtd: 0 } };
+    const porAtendente = {};
+    let totalGeral = 0;
+
+    listaDoDia.forEach(l => {
+        if (mapaFormas[l.formaPagamento]) {
+            mapaFormas[l.formaPagamento].total += l.valor;
+            mapaFormas[l.formaPagamento].qtd += 1;
+        }
+        totalGeral += l.valor;
+        if (!porAtendente[l.usuarioNome]) porAtendente[l.usuarioNome] = { total: 0, qtd: 0 };
+        porAtendente[l.usuarioNome].total += l.valor;
+        porAtendente[l.usuarioNome].qtd += 1;
+    });
+
+    const linhas = [
+        { 'Resumo': 'Total geral', 'Quantidade': listaDoDia.length, 'Valor (R$)': totalGeral },
+        { 'Resumo': 'Débito', 'Quantidade': mapaFormas.Debito.qtd, 'Valor (R$)': mapaFormas.Debito.total },
+        { 'Resumo': 'Crédito', 'Quantidade': mapaFormas.Credito.qtd, 'Valor (R$)': mapaFormas.Credito.total },
+        { 'Resumo': 'Espécie (+ Pix)', 'Quantidade': mapaFormas.Especie.qtd + mapaFormas.Pix.qtd, 'Valor (R$)': mapaFormas.Especie.total + mapaFormas.Pix.total },
+        { 'Resumo': 'Pix', 'Quantidade': mapaFormas.Pix.qtd, 'Valor (R$)': mapaFormas.Pix.total },
+        { 'Resumo': 'Total Cartão (Débito + Crédito)', 'Quantidade': mapaFormas.Debito.qtd + mapaFormas.Credito.qtd, 'Valor (R$)': mapaFormas.Debito.total + mapaFormas.Credito.total },
+        { 'Resumo': '', 'Quantidade': '', 'Valor (R$)': '' },
+        { 'Resumo': 'Por atendente', 'Quantidade': '', 'Valor (R$)': '' },
+        ...Object.entries(porAtendente).map(([nome, v]) => ({ 'Resumo': nome, 'Quantidade': v.qtd, 'Valor (R$)': v.total }))
+    ];
+    return linhas;
+}
+
+function exportarPlanilha() {
+    if (typeof XLSX === 'undefined') {
+        mostrarErro('Não foi possível carregar a ferramenta de planilha (verifique sua conexão com a internet e tente novamente).');
+        return;
+    }
+    const data = document.getElementById('dataSelecionada').value;
+
+    const linhasLancamentos = montarLinhasPlanilha();
+    const linhasResumo = montarResumoPlanilha();
+
+    const wb = XLSX.utils.book_new();
+    const wsLancamentos = XLSX.utils.json_to_sheet(linhasLancamentos.length ? linhasLancamentos : [{ 'Atendente': 'Sem lançamentos neste dia' }]);
+    const wsResumo = XLSX.utils.json_to_sheet(linhasResumo);
+    XLSX.utils.book_append_sheet(wb, wsLancamentos, 'Lançamentos');
+    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+    XLSX.writeFile(wb, `cerdil_caixa_${data}.xlsx`);
+}
+
+document.getElementById('btnExportarPlanilha').addEventListener('click', exportarPlanilha);
 
 function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
     return `
