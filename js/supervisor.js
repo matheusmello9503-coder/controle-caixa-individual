@@ -94,7 +94,7 @@ document.getElementById('dataSelecionada').addEventListener('change', () => {
 // ---------- Abas (Fechamento / Historico) ----------
 const tituloAbaEl = document.getElementById('tituloAba');
 const titulosAba = {
-    fechamento: { titulo: 'Fechamento do dia', sub: 'Vis&atilde;o consolidada de todos os atendentes' },
+    fechamento: { titulo: 'Conferência de caixa', sub: 'Visão consolidada de todos os atendentes' },
     historico: { titulo: 'Histórico', sub: 'Totais e evolução dos últimos dias' }
 };
 document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
@@ -254,6 +254,20 @@ function obterListaTodosOrdenada() {
     return todos;
 }
 
+// ANEXO 1: total do atendimento inteiro (soma de todas as linhas do mesmo
+// grupoId), mostrado junto do nome do paciente quando ha mais de 1 exame
+// no grupo - igual ao que a tela de recepcao mostra para cada atendente.
+function totaisPorGrupo(lista) {
+    const somaPorGrupo = {};
+    const qtdPorGrupo = {};
+    lista.forEach(l => {
+        if (!l.grupoId) return;
+        somaPorGrupo[l.grupoId] = (somaPorGrupo[l.grupoId] || 0) + (l.valor || 0);
+        qtdPorGrupo[l.grupoId] = (qtdPorGrupo[l.grupoId] || 0) + 1;
+    });
+    return { somaPorGrupo, qtdPorGrupo };
+}
+
 function renderizarTabelaTodos() {
     const todos = obterListaTodosOrdenada();
 
@@ -262,13 +276,18 @@ function renderizarTabelaTodos() {
     // lancamentos do mesmo grupoId podem nao ficar mais adjacentes.
     const agruparVisualmente = !ordenacaoTodosCampo;
     let grupoAnteriorTodos = null;
+    const { somaPorGrupo, qtdPorGrupo } = totaisPorGrupo(todos);
 
     document.getElementById('corpoTodos').innerHTML = todos.map(l => {
         const mesmoGrupo = agruparVisualmente && l.grupoId && l.grupoId === grupoAnteriorTodos;
         grupoAnteriorTodos = l.grupoId || null;
+        const temMaisDeUmExame = agruparVisualmente && l.grupoId && qtdPorGrupo[l.grupoId] > 1;
+        const seloTotalGrupo = (!mesmoGrupo && temMaisDeUmExame)
+            ? `<span class="selo-total-grupo" title="Total deste atendimento (${qtdPorGrupo[l.grupoId]} exames)">Total: ${formatarMoeda(somaPorGrupo[l.grupoId])}</span>`
+            : '';
         return `
         <tr class="${(!l.titulo || !l.tesouraria) ? 'linha-pendente' : ''} ${mesmoGrupo ? 'linha-mesmo-grupo' : 'linha-inicio-grupo'}">
-            <td>${l.usuarioNome}</td><td>${mesmoGrupo ? '&#8618;' : l.nomePaciente}</td><td>${l.exame}</td>
+            <td>${l.usuarioNome}</td><td>${mesmoGrupo ? '&#8618;' : l.nomePaciente}${seloTotalGrupo}</td><td>${l.exame}</td>
             <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
             <td>${l.titulo || '-'}</td><td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>

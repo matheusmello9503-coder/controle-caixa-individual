@@ -326,6 +326,22 @@ function renderizarResumoHero() {
     `;
 }
 
+// ANEXO 1: quando um atendimento tem mais de um exame (mesmo grupoId em
+// mais de um lancamento), soma o valor de todas as linhas daquele grupo -
+// para mostrar, junto do nome do paciente, o total daquele atendimento
+// inteiro. So compensa mostrar quando ha mais de 1 lancamento no grupo;
+// com exame unico o valor da propria linha ja E o total.
+function totaisPorGrupo(lista) {
+    const somaPorGrupo = {};
+    const qtdPorGrupo = {};
+    lista.forEach(l => {
+        if (!l.grupoId) return;
+        somaPorGrupo[l.grupoId] = (somaPorGrupo[l.grupoId] || 0) + (l.valor || 0);
+        qtdPorGrupo[l.grupoId] = (qtdPorGrupo[l.grupoId] || 0) + 1;
+    });
+    return { somaPorGrupo, qtdPorGrupo };
+}
+
 function renderizarTabela() {
     renderizarResumoHero();
     const corpo = document.getElementById('corpoTabela');
@@ -337,6 +353,7 @@ function renderizarTabela() {
     // fora dela a tabela fica so para consulta, sem mostrar botoes que
     // iriam falhar se clicados.
     const podeEditar = dentroDaJanelaDeLancamento();
+    const { somaPorGrupo, qtdPorGrupo } = totaisPorGrupo(ultimaLista);
 
     ultimaLista.forEach(l => {
         total += l.valor;
@@ -348,8 +365,13 @@ function renderizarTabela() {
         tr.classList.add(mesmoGrupoDoAnterior ? 'linha-mesmo-grupo' : 'linha-inicio-grupo');
         grupoAnterior = l.grupoId || null;
 
+        const temMaisDeUmExame = l.grupoId && qtdPorGrupo[l.grupoId] > 1;
+        const seloTotalGrupo = (!mesmoGrupoDoAnterior && temMaisDeUmExame)
+            ? `<span class="selo-total-grupo" title="Total deste atendimento (${qtdPorGrupo[l.grupoId]} exames)">Total: ${formatarMoeda(somaPorGrupo[l.grupoId])}</span>`
+            : '';
+
         tr.innerHTML = `
-            <td>${mesmoGrupoDoAnterior ? '&#8618;' : l.nomePaciente}</td>
+            <td>${mesmoGrupoDoAnterior ? '&#8618;' : l.nomePaciente}${seloTotalGrupo}</td>
             <td>${l.exame}</td>
             <td>${formatarMoeda(l.valor)}</td>
             <td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
