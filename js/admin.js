@@ -429,15 +429,18 @@ document.querySelectorAll('#tabelaTodos .th-ordenavel').forEach(th => {
 // ---------- Exportar planilha (.xlsx) ----------
 // Usa a biblioteca SheetJS (carregada via CDN no HTML) para gerar um
 // arquivo .xlsx de verdade no proprio navegador, sem precisar de nenhum
-// servidor. A planilha sai com duas abas: os lancamentos (na mesma ordem
-// que a tela esta mostrando no momento) e um resumo com os totais, iguais
-// aos que aparecem nos cartoes acima.
+// servidor. O usuario escolhe um periodo (data inicial e final) no modal
+// de exportar; buscamos todos os lancamentos desse intervalo direto no
+// Firestore (sem depender do listener do dia unico que alimenta o resto
+// da tela) e geramos uma planilha com duas abas: os lancamentos (cada um
+// com sua propria data) e um resumo com os totais do periodo inteiro.
 function textoTesouraria(l) {
     return l.tesouraria ? 'Feita' : 'Pendente';
 }
 
-function montarLinhasPlanilha() {
-    return obterListaTodosOrdenada().map(l => ({
+function montarLinhasPlanilha(lista) {
+    return lista.map(l => ({
+        'Data': l.data || '',
         'Atendente': l.usuarioNome,
         'Paciente': l.nomePaciente,
         'Exame': l.exame,
@@ -450,12 +453,12 @@ function montarLinhasPlanilha() {
     }));
 }
 
-function montarResumoPlanilha() {
+function montarResumoPlanilha(lista) {
     const mapaFormas = { Debito: { total: 0, qtd: 0 }, Credito: { total: 0, qtd: 0 }, Especie: { total: 0, qtd: 0 }, Pix: { total: 0, qtd: 0 } };
     const porAtendente = {};
     let totalGeral = 0;
 
-    listaDoDia.forEach(l => {
+    lista.forEach(l => {
         if (mapaFormas[l.formaPagamento]) {
             mapaFormas[l.formaPagamento].total += l.valor;
             mapaFormas[l.formaPagamento].qtd += 1;
@@ -467,7 +470,7 @@ function montarResumoPlanilha() {
     });
 
     const linhas = [
-        { 'Resumo': 'Total geral', 'Quantidade': listaDoDia.length, 'Valor (R$)': totalGeral },
+        { 'Resumo': 'Total geral', 'Quantidade': lista.length, 'Valor (R$)': totalGeral },
         { 'Resumo': 'Débito', 'Quantidade': mapaFormas.Debito.qtd, 'Valor (R$)': mapaFormas.Debito.total },
         { 'Resumo': 'Crédito', 'Quantidade': mapaFormas.Credito.qtd, 'Valor (R$)': mapaFormas.Credito.total },
         { 'Resumo': 'Espécie (+ Pix)', 'Quantidade': mapaFormas.Especie.qtd + mapaFormas.Pix.qtd, 'Valor (R$)': mapaFormas.Especie.total + mapaFormas.Pix.total },
@@ -480,26 +483,94 @@ function montarResumoPlanilha() {
     return linhas;
 }
 
-function exportarPlanilha() {
+function gerarArquivoPlanilha(lista, nomeArquivo) {
+    const linhasLancamentos = montarLinhasPlanilha(lista);
+    const linhasResumo = montarResumoPlanilha(lista);
+
+    const wb = XLSX.utils.book_new();
+    const wsLancamentos = XLSX.utils.json_to_sheet(linhasLancamentos.length ? linhasLancamentos : [{ 'Atendente': 'Sem lançamentos neste período' }]);
+    const wsResumo = XLSX.utils.json_to_sheet(linhasResumo);
+    XLSX.utils.book_append_sheet(wb, wsLancamentos, 'Lançamentos');
+    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+    XLSX.writeFile(wb, nomeArquivo);
+}
+
+// ---------- Modal "Exportar por período" ----------
+const modalExportarPlanilha = document.getElementById('modalExportarPlanilha');
+const formExportarPlanilha = document.getElementById('formExportarPlanilha');
+const msgErroExportar = document.getElementById('msgErroExportar');
+const btnConfirmarExportar = document.getElementById('btnConfirmarExportar');
+
+function abrirModalExportar() {
     if (typeof XLSX === 'undefined') {
         mostrarErro('Não foi possível carregar a ferramenta de planilha (verifique sua conexão com a internet e tente novamente).');
         return;
     }
     const data = document.getElementById('dataSelecionada').value;
-
-    const linhasLancamentos = montarLinhasPlanilha();
-    const linhasResumo = montarResumoPlanilha();
-
-    const wb = XLSX.utils.book_new();
-    const wsLancamentos = XLSX.utils.json_to_sheet(linhasLancamentos.length ? linhasLancamentos : [{ 'Atendente': 'Sem lançamentos neste dia' }]);
-    const wsResumo = XLSX.utils.json_to_sheet(linhasResumo);
-    XLSX.utils.book_append_sheet(wb, wsLancamentos, 'Lançamentos');
-    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
-
-    XLSX.writeFile(wb, `cerdil_caixa_${data}.xlsx`);
+    document.getElementById('exportarDataInicio').value = data;
+    document.getElementById('exportarDataFim').value = data;
+    msgErroExportar.textContent = '';
+    modalExportarPlanilha.style.display = 'flex';
 }
 
-document.getElementById('btnExportarPlanilha').addEventListener('click', exportarPlanilha);
+function fecharModalExportar() {
+    modalExportarPlanilha.style.display = 'none';
+}
+
+document.getElementById('btnExportarPlanilha').addEventListener('click', abrirModalExportar);
+document.getElementById('btnCancelarExportar').addEventListener('click', fecharModalExportar);
+modalExportarPlanilha.addEventListener('click', (ev) => {
+    if (ev.target === modalExportarPlanilha) fecharModalExportar();
+});
+
+formExportarPlanilha.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    msgErroExportar.textContent = '';
+
+    const inicio = document.getElementById('exportarDataInicio').value;
+    const fim = document.getElementById('exportarDataFim').value;
+
+    if (!inicio || !fim) {
+        msgErroExportar.textContent = 'Escolha as duas datas.';
+        return;
+    }
+    if (inicio > fim) {
+        msgErroExportar.textContent = 'A data inicial não pode ser depois da data final.';
+        return;
+    }
+
+    btnConfirmarExportar.disabled = true;
+    btnConfirmarExportar.textContent = 'Gerando...';
+    try {
+        const qPeriodo = query(
+            collection(db, 'lancamentos'),
+            where('data', '>=', inicio),
+            where('data', '<=', fim)
+        );
+        const snap = await getDocs(qPeriodo);
+        const lista = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => {
+                if (a.data !== b.data) return a.data < b.data ? -1 : 1;
+                const ta = a.criadoEm?.toMillis ? a.criadoEm.toMillis() : 0;
+                const tb = b.criadoEm?.toMillis ? b.criadoEm.toMillis() : 0;
+                return ta - tb;
+            });
+
+        const nomeArquivo = inicio === fim
+            ? `cerdil_caixa_${inicio}.xlsx`
+            : `cerdil_caixa_${inicio}_a_${fim}.xlsx`;
+        gerarArquivoPlanilha(lista, nomeArquivo);
+        fecharModalExportar();
+    } catch (erro) {
+        console.error('Erro ao exportar planilha do período:', erro);
+        msgErroExportar.textContent = 'Não foi possível gerar a planilha. Tente novamente.';
+    } finally {
+        btnConfirmarExportar.disabled = false;
+        btnConfirmarExportar.textContent = 'Gerar planilha (.xlsx)';
+    }
+});
 
 function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
     return `
