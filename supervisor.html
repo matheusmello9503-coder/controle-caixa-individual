@@ -211,6 +211,24 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="modalExportarPlanilha" style="display:none">
+    <div class="modal-caixa" style="max-width:420px">
+        <h2 style="margin-top:0">Exportar planilha</h2>
+        <p class="texto-apoio">Escolha o per&iacute;odo que voc&ecirc; quer exportar. Todos os lan&ccedil;amentos desse intervalo v&atilde;o para uma &uacute;nica planilha, com um resumo do per&iacute;odo inteiro.</p>
+        <div class="erro" id="msgErroExportar"></div>
+        <form id="formExportarPlanilha">
+            <div class="form-linha" style="grid-template-columns: 1fr 1fr;">
+                <div class="campo"><label>De</label><input type="date" id="exportarDataInicio" required></div>
+                <div class="campo"><label>At&eacute;</label><input type="date" id="exportarDataFim" required></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:18px">
+                <button type="submit" class="botao" id="btnConfirmarExportar">Gerar planilha (.xlsx)</button>
+                <button type="button" class="botao secundario" id="btnCancelarExportar">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script type="module" src="js/supervisor.js"></script>
 </body>
