@@ -1,11 +1,16 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-    doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, getDocs
+    doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, orderBy, limit, onSnapshot, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { auth, db } from "./firebase-init.js";
 import { FUSO_HORARIO } from "./firebase-config.js";
 import { montarNavRapida } from "./nav-rapida.js";
 import { carregarHistorico, renderizarHistorico } from "./historico.js";
+import {
+    formatarMoeda, hojeInputStr, mostrarErro, mostrarOk,
+    calcularResumo, totaisPorGrupo, ordenarLista,
+    gerarArquivoPlanilha, registrarAuditoria
+} from "./caixa-compartilhado.js";
 
 let cancelarOuvinteLancamentos = null;
 let listaDoDia = [];
@@ -18,28 +23,13 @@ let ultimoTotalEspeciePura = 0;
 let depositoJaSalvo = false;
 let caixaDoDiaFechado = false;
 
-function formatarMoeda(valor) {
-    return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+// Quem esta logado agora - usado para assinar os registros de auditoria
+// (editar/excluir lancamento) em nome de quem realmente fez a acao.
+let usuarioAtual = null;
 
-function hojeInputStr() {
-    const partes = new Intl.DateTimeFormat('en-CA', { timeZone: FUSO_HORARIO, year: 'numeric', month: '2-digit', day: '2-digit' })
-        .formatToParts(new Date());
-    const mapa = Object.fromEntries(partes.map(p => [p.type, p.value]));
-    return `${mapa.year}-${mapa.month}-${mapa.day}`;
-}
-
-function mostrarErro(texto, idEl = 'msgErro') {
-    const el = document.getElementById(idEl);
-    el.textContent = texto;
-    el.classList.add('mostrar');
-    setTimeout(() => el.classList.remove('mostrar'), 6000);
-}
-function mostrarOk(texto, idEl = 'msgOk') {
-    const el = document.getElementById(idEl);
-    el.textContent = texto;
-    el.classList.add('mostrar');
-    setTimeout(() => el.classList.remove('mostrar'), 3000);
+function rotuloPerfil(perfil) {
+    const mapa = { admin: 'Administrador', supervisor: 'Supervisor', recepcao: 'Recepção' };
+    return mapa[perfil] || perfil;
 }
 
 // ---------- Autenticacao ----------
@@ -63,8 +53,9 @@ onAuthStateChanged(auth, async (usuario) => {
         return;
     }
 
+    usuarioAtual = { uid: usuario.uid, perfil, nome: perfilDoc.data().nome };
     montarNavRapida({ perfil, nome: perfilDoc.data().nome, paginaAtual: 'supervisor' });
-    document.getElementById('dataSelecionada').value = hojeInputStr();
+    document.getElementById('dataSelecionada').value = hojeInputStr(FUSO_HORARIO);
 
     carregarLancamentosDoDia();
     carregarFechamento();
@@ -91,11 +82,12 @@ document.getElementById('dataSelecionada').addEventListener('change', () => {
     carregarFechamento();
 });
 
-// ---------- Abas (Fechamento / Historico) ----------
+// ---------- Abas (Fechamento / Historico / Auditoria) ----------
 const tituloAbaEl = document.getElementById('tituloAba');
 const titulosAba = {
     fechamento: { titulo: 'Conferência de caixa', sub: 'Visão consolidada de todos os atendentes' },
-    historico: { titulo: 'Histórico', sub: 'Totais e evolução dos últimos dias' }
+    historico: { titulo: 'Histórico', sub: 'Totais e evolução dos últimos dias' },
+    auditoria: { titulo: 'Auditoria', sub: 'Quem editou ou excluiu cada lançamento' }
 };
 document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
     aba.addEventListener('click', () => {
@@ -104,11 +96,13 @@ document.querySelectorAll('.sidebar-link[data-aba]').forEach(aba => {
         const alvo = aba.dataset.aba;
         document.getElementById('abaFechamento').style.display = alvo === 'fechamento' ? 'block' : 'none';
         document.getElementById('abaHistorico').style.display = alvo === 'historico' ? 'block' : 'none';
+        document.getElementById('abaAuditoria').style.display = alvo === 'auditoria' ? 'block' : 'none';
         const info = titulosAba[alvo];
         if (info && tituloAbaEl) {
             tituloAbaEl.innerHTML = `${info.titulo}<span class="sub">${info.sub}</span>`;
         }
         if (alvo === 'historico') atualizarHistorico();
+        if (alvo === 'auditoria') carregarAuditoria();
     });
 });
 
@@ -147,38 +141,8 @@ function carregarLancamentosDoDia() {
 }
 
 function renderizarResumo() {
-    const mapaFormas = { Debito: { total: 0, qtd: 0 }, Credito: { total: 0, qtd: 0 }, Especie: { total: 0, qtd: 0 }, Pix: { total: 0, qtd: 0 } };
-    const porAtendente = {};
-    let totalGeral = 0;
-
-    listaDoDia.forEach(l => {
-        // Protecao contra um lancamento com forma de pagamento fora das 4
-        // esperadas (dado antigo, editado manualmente no console do
-        // Firebase, ou uma futura forma nova ainda nao suportada aqui) -
-        // sem isso, um unico lancamento assim travava a tela inteira.
-        if (mapaFormas[l.formaPagamento]) {
-            mapaFormas[l.formaPagamento].total += l.valor;
-            mapaFormas[l.formaPagamento].qtd += 1;
-        }
-        totalGeral += l.valor;
-
-        if (!porAtendente[l.usuarioNome]) porAtendente[l.usuarioNome] = { total: 0, qtd: 0 };
-        porAtendente[l.usuarioNome].total += l.valor;
-        porAtendente[l.usuarioNome].qtd += 1;
-    });
-
-    const totalCartao = mapaFormas.Debito.total + mapaFormas.Credito.total;
-
-    // O cartao "Especie" mostra Especie + Pix somados, igual ao Tasy (que
-    // lanca o Pix dentro de Especie) - assim o numero bate na hora de
-    // conferir os dois sistemas lado a lado. O cartao "Pix" ao lado mostra
-    // a parte que e so Pix, para quem quiser ver o detalhe. O calculo do
-    // Deposito (mais abaixo) usa a Especie PURA (sem Pix), guardada em
-    // ultimoTotalEspeciePura - e a mesma conta que voces ja fazem por fora
-    // (Especie do Tasy menos o Pix), so que automatica.
-    const especieComPix = mapaFormas.Especie.total + mapaFormas.Pix.total;
-    const especieComPixQtd = mapaFormas.Especie.qtd + mapaFormas.Pix.qtd;
-    ultimoTotalEspeciePura = mapaFormas.Especie.total;
+    const { mapaFormas, porAtendente, totalGeral, totalCartao, especieComPix, especieComPixQtd, especiePura } = calcularResumo(listaDoDia);
+    ultimoTotalEspeciePura = especiePura;
 
     // Hero (Total Geral) primeiro, seguido do detalhamento por forma de
     // pagamento. "Total Cartao" fica junto por ser uma soma que nao esta
@@ -216,64 +180,19 @@ function renderizarResumo() {
 }
 
 // ---------- Ordenacao da tabela "Todos os lancamentos do dia" ----------
-// Por padrao a tabela segue a ordem de criacao (e agrupa visualmente os
-// lancamentos do mesmo atendimento com a seta "->"). Quando a pessoa clica
-// num titulo de coluna, a lista passa a seguir aquele criterio (clicar de
-// novo no mesmo titulo inverte a ordem) - nesse caso o agrupamento visual
-// fica desligado, porque lancamentos do mesmo atendimento podem nao ficar
-// mais lado a lado.
 let ordenacaoTodosCampo = null;
 let ordenacaoTodosDirecao = 'asc';
-
-function valorParaOrdenar(l, campo) {
-    if (campo === 'valor') return l.valor || 0;
-    if (campo === 'tesouraria') return l.tesouraria ? 1 : 0;
-    return (l[campo] || '').toString().toLowerCase();
-}
-
-function compararPorCampo(a, b, campo, direcao) {
-    const va = valorParaOrdenar(a, campo);
-    const vb = valorParaOrdenar(b, campo);
-    let cmp;
-    if (typeof va === 'number' && typeof vb === 'number') {
-        cmp = va - vb;
-    } else {
-        cmp = va.localeCompare(vb, 'pt-BR');
-    }
-    return direcao === 'asc' ? cmp : -cmp;
-}
 
 // Mesma ordenacao usada na tabela na tela - reaproveitada tambem na
 // exportacao da planilha, para o arquivo sair na mesma ordem que a pessoa
 // esta vendo no momento.
 function obterListaTodosOrdenada() {
-    let todos = [...listaDoDia].sort((a, b) => (a.criadoEm?.toMillis?.() || 0) - (b.criadoEm?.toMillis?.() || 0));
-    if (ordenacaoTodosCampo) {
-        todos.sort((a, b) => compararPorCampo(a, b, ordenacaoTodosCampo, ordenacaoTodosDirecao));
-    }
-    return todos;
-}
-
-// ANEXO 1: total do atendimento inteiro (soma de todas as linhas do mesmo
-// grupoId), mostrado junto do nome do paciente quando ha mais de 1 exame
-// no grupo - igual ao que a tela de recepcao mostra para cada atendente.
-function totaisPorGrupo(lista) {
-    const somaPorGrupo = {};
-    const qtdPorGrupo = {};
-    lista.forEach(l => {
-        if (!l.grupoId) return;
-        somaPorGrupo[l.grupoId] = (somaPorGrupo[l.grupoId] || 0) + (l.valor || 0);
-        qtdPorGrupo[l.grupoId] = (qtdPorGrupo[l.grupoId] || 0) + 1;
-    });
-    return { somaPorGrupo, qtdPorGrupo };
+    return ordenarLista(listaDoDia, ordenacaoTodosCampo, ordenacaoTodosDirecao);
 }
 
 function renderizarTabelaTodos() {
     const todos = obterListaTodosOrdenada();
 
-    // O agrupamento visual (seta "->" para o mesmo atendimento) so faz
-    // sentido quando a ordem e a de criacao - com ordenacao customizada, os
-    // lancamentos do mesmo grupoId podem nao ficar mais adjacentes.
     const agruparVisualmente = !ordenacaoTodosCampo;
     let grupoAnteriorTodos = null;
     const { somaPorGrupo, qtdPorGrupo } = totaisPorGrupo(todos);
@@ -294,10 +213,6 @@ function renderizarTabelaTodos() {
             </td>
         </tr>`;
 
-        // ANEXO 1: ao fechar o grupo (proximo lancamento e de outro
-        // atendimento, ou este e o ultimo), soma tudo numa linha de
-        // subtotal - so quando a lista segue na ordem de criacao (mesma
-        // condicao do agrupamento visual) e o grupo teve mais de 1 exame.
         const proximo = todos[indice + 1];
         const fechandoGrupo = agruparVisualmente && l.grupoId && (!proximo || proximo.grupoId !== l.grupoId);
         const linhaSubtotal = (fechandoGrupo && qtdPorGrupo[l.grupoId] > 1) ? `
@@ -318,11 +233,8 @@ function renderizarTabelaTodos() {
 }
 
 // ---------- Editar/excluir qualquer lancamento (admin/supervisor) ----------
-// Como admin e supervisor nao tem nenhuma restricao de dia, horario ou
-// atendente nas regras do Firestore para lancamentos (ver firestore.rules),
-// esta tela permite corrigir ou remover QUALQUER lancamento de QUALQUER
-// atendente, na data que estiver selecionada acima (que por sua vez pode
-// ser qualquer data, passada ou futura).
+// Toda edicao/exclusao feita aqui grava tambem um registro de auditoria
+// (quem, quando, o que mudou).
 const modalEditarLancamento = document.getElementById('modalEditarLancamento');
 const formEditarLancamento = document.getElementById('formEditarLancamento');
 
@@ -355,6 +267,7 @@ formEditarLancamento.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const id = formEditarLancamento.dataset.editandoId;
     if (!id) return;
+    const antes = listaDoDia.find(x => x.id === id);
 
     const nomePaciente = document.getElementById('editNomePaciente').value.trim();
     const exame = document.getElementById('editExame').value;
@@ -369,10 +282,10 @@ formEditarLancamento.addEventListener('submit', async (ev) => {
         return;
     }
 
+    const depois = { nomePaciente, exame, valor, formaPagamento, titulo, numeroNf, tesouraria };
     try {
-        await updateDoc(doc(db, 'lancamentos', id), {
-            nomePaciente, exame, valor, formaPagamento, titulo, numeroNf, tesouraria
-        });
+        await updateDoc(doc(db, 'lancamentos', id), depois);
+        await registrarAuditoria(db, { acao: 'editar', lancamentoId: id, antes, depois, quem: usuarioAtual });
         fecharModalEdicao();
         mostrarOk('Lançamento atualizado.');
     } catch (e) {
@@ -386,6 +299,7 @@ async function excluirLancamentoTodos(id) {
     if (!confirm(`Excluir ${descricao}? Essa ação não pode ser desfeita.`)) return;
     try {
         await deleteDoc(doc(db, 'lancamentos', id));
+        await registrarAuditoria(db, { acao: 'excluir', lancamentoId: id, antes: l, depois: null, quem: usuarioAtual });
         mostrarOk('Lançamento excluído.');
     } catch (e) {
         mostrarErro('Não foi possível excluir: ' + e.message);
@@ -410,76 +324,6 @@ document.querySelectorAll('#tabelaTodos .th-ordenavel').forEach(th => {
 });
 
 // ---------- Exportar planilha (.xlsx) ----------
-// Usa a biblioteca SheetJS (carregada via CDN no HTML) para gerar um
-// arquivo .xlsx de verdade no proprio navegador, sem precisar de nenhum
-// servidor. O usuario escolhe um periodo (data inicial e final) no modal
-// de exportar; buscamos todos os lancamentos desse intervalo direto no
-// Firestore (sem depender do listener do dia unico que alimenta o resto
-// da tela) e geramos uma planilha com duas abas: os lancamentos (cada um
-// com sua propria data) e um resumo com os totais do periodo inteiro.
-function textoTesouraria(l) {
-    return l.tesouraria ? 'Feita' : 'Pendente';
-}
-
-function montarLinhasPlanilha(lista) {
-    return lista.map(l => ({
-        'Data': l.data || '',
-        'Atendente': l.usuarioNome,
-        'Paciente': l.nomePaciente,
-        'Exame': l.exame,
-        'Valor (R$)': l.valor || 0,
-        'Pagamento': l.formaPagamento,
-        'Pagamento dividido': l.pagamentoDividido ? 'Sim' : 'Não',
-        'Título': l.titulo || '',
-        'Nº NF': l.numeroNf || '',
-        'Tesouraria': textoTesouraria(l)
-    }));
-}
-
-function montarResumoPlanilha(lista) {
-    const mapaFormas = { Debito: { total: 0, qtd: 0 }, Credito: { total: 0, qtd: 0 }, Especie: { total: 0, qtd: 0 }, Pix: { total: 0, qtd: 0 } };
-    const porAtendente = {};
-    let totalGeral = 0;
-
-    lista.forEach(l => {
-        if (mapaFormas[l.formaPagamento]) {
-            mapaFormas[l.formaPagamento].total += l.valor;
-            mapaFormas[l.formaPagamento].qtd += 1;
-        }
-        totalGeral += l.valor;
-        if (!porAtendente[l.usuarioNome]) porAtendente[l.usuarioNome] = { total: 0, qtd: 0 };
-        porAtendente[l.usuarioNome].total += l.valor;
-        porAtendente[l.usuarioNome].qtd += 1;
-    });
-
-    const linhas = [
-        { 'Resumo': 'Total geral', 'Quantidade': lista.length, 'Valor (R$)': totalGeral },
-        { 'Resumo': 'Débito', 'Quantidade': mapaFormas.Debito.qtd, 'Valor (R$)': mapaFormas.Debito.total },
-        { 'Resumo': 'Crédito', 'Quantidade': mapaFormas.Credito.qtd, 'Valor (R$)': mapaFormas.Credito.total },
-        { 'Resumo': 'Espécie (+ Pix)', 'Quantidade': mapaFormas.Especie.qtd + mapaFormas.Pix.qtd, 'Valor (R$)': mapaFormas.Especie.total + mapaFormas.Pix.total },
-        { 'Resumo': 'Pix', 'Quantidade': mapaFormas.Pix.qtd, 'Valor (R$)': mapaFormas.Pix.total },
-        { 'Resumo': 'Total Cartão (Débito + Crédito)', 'Quantidade': mapaFormas.Debito.qtd + mapaFormas.Credito.qtd, 'Valor (R$)': mapaFormas.Debito.total + mapaFormas.Credito.total },
-        { 'Resumo': '', 'Quantidade': '', 'Valor (R$)': '' },
-        { 'Resumo': 'Por atendente', 'Quantidade': '', 'Valor (R$)': '' },
-        ...Object.entries(porAtendente).map(([nome, v]) => ({ 'Resumo': nome, 'Quantidade': v.qtd, 'Valor (R$)': v.total }))
-    ];
-    return linhas;
-}
-
-function gerarArquivoPlanilha(lista, nomeArquivo) {
-    const linhasLancamentos = montarLinhasPlanilha(lista);
-    const linhasResumo = montarResumoPlanilha(lista);
-
-    const wb = XLSX.utils.book_new();
-    const wsLancamentos = XLSX.utils.json_to_sheet(linhasLancamentos.length ? linhasLancamentos : [{ 'Atendente': 'Sem lançamentos neste período' }]);
-    const wsResumo = XLSX.utils.json_to_sheet(linhasResumo);
-    XLSX.utils.book_append_sheet(wb, wsLancamentos, 'Lançamentos');
-    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
-
-    XLSX.writeFile(wb, nomeArquivo);
-}
-
-// ---------- Modal "Exportar por período" ----------
 const modalExportarPlanilha = document.getElementById('modalExportarPlanilha');
 const formExportarPlanilha = document.getElementById('formExportarPlanilha');
 const msgErroExportar = document.getElementById('msgErroExportar');
@@ -566,12 +410,6 @@ function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
 }
 
 // ---------- Fechamento diario ----------
-// Sugere o Deposito automaticamente (Especie pura, sem Pix - a mesma
-// conta que ja era feita manualmente por fora) enquanto ninguem tiver
-// salvo um valor de Deposito para este dia ainda. Assim que existir um
-// valor salvo (mesmo que seja zero), ou o dia estiver fechado, o sistema
-// nunca mais sobrescreve sozinho - quem fecha o caixa sempre pode ajustar
-// manualmente antes de salvar/fechar.
 function atualizarSugestaoDeposito() {
     if (depositoJaSalvo || caixaDoDiaFechado) return;
     document.getElementById('deposito').value = ultimoTotalEspeciePura.toFixed(2);
@@ -622,10 +460,6 @@ document.getElementById('btnFecharCaixa').addEventListener('click', async () => 
     if (!confirm('Fechar o caixa deste dia e liberar para depósito?')) return;
     const data = document.getElementById('dataSelecionada').value;
     try {
-        // Salva tambem despesas/deposito/observacoes junto com o fechamento -
-        // assim, mesmo que a pessoa nao tenha clicado em "Salvar" antes, o
-        // valor de Deposito mostrado na tela (que pode ser so a sugestao
-        // automatica, ainda nao salva) fica registrado de verdade.
         await setDoc(doc(db, 'fechamentos', data), {
             despesas: parseFloat(document.getElementById('despesas').value) || 0,
             despesasObs: document.getElementById('despesas_obs').value.trim(),
@@ -652,3 +486,55 @@ document.getElementById('btnReabrir').addEventListener('click', async () => {
         mostrarErro('Não foi possível reabrir: ' + e.message);
     }
 });
+
+// ---------- Auditoria ----------
+const NOMES_CAMPO_AUDITORIA = {
+    nomePaciente: 'Paciente', exame: 'Exame', valor: 'Valor', formaPagamento: 'Pagamento',
+    titulo: 'Título', numeroNf: 'Nº NF', tesouraria: 'Tesouraria'
+};
+
+function formatarValorAuditoria(campo, valor) {
+    if (valor === null || valor === undefined || valor === '') return '-';
+    if (campo === 'valor') return formatarMoeda(valor);
+    if (campo === 'tesouraria') return valor ? 'Feita' : 'Pendente';
+    return String(valor);
+}
+
+function formatarMudancas(mudancas) {
+    const entradas = Object.entries(mudancas || {});
+    if (!entradas.length) return '<span style="color:var(--cinza-texto)">-</span>';
+    return entradas.map(([campo, { de, para }]) => {
+        const rotulo = NOMES_CAMPO_AUDITORIA[campo] || campo;
+        return `<div><strong>${rotulo}:</strong> ${formatarValorAuditoria(campo, de)} &rarr; ${formatarValorAuditoria(campo, para)}</div>`;
+    }).join('');
+}
+
+function formatarQuandoAuditoria(registro) {
+    const millis = registro.quando?.toMillis ? registro.quando.toMillis() : null;
+    if (!millis) return '-';
+    return new Date(millis).toLocaleString('pt-BR', { timeZone: FUSO_HORARIO });
+}
+
+async function carregarAuditoria() {
+    const corpo = document.getElementById('corpoAuditoria');
+    corpo.innerHTML = '<tr><td colspan="5" style="color:var(--cinza-texto)">Carregando...</td></tr>';
+    try {
+        const q = query(collection(db, 'auditoria'), orderBy('quando', 'desc'), limit(100));
+        const snap = await getDocs(q);
+        const registros = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        corpo.innerHTML = registros.length ? registros.map(r => `
+            <tr>
+                <td>${formatarQuandoAuditoria(r)}</td>
+                <td>${r.usuarioNome || '-'} <span class="selo" style="font-size:10px">${rotuloPerfil(r.usuarioPerfil)}</span></td>
+                <td>${r.acao === 'excluir' ? '<span class="selo pendente">Excluído</span>' : '<span class="selo ok">Editado</span>'}</td>
+                <td>${r.lancamentoResumo || '-'}</td>
+                <td>${formatarMudancas(r.mudancas)}</td>
+            </tr>
+        `).join('') : '<tr><td colspan="5" style="color:var(--cinza-texto)">Nenhum registro de auditoria ainda.</td></tr>';
+    } catch (e) {
+        corpo.innerHTML = `<tr><td colspan="5" class="erro mostrar" style="position:static">Não foi possível carregar a auditoria: ${e.message}</td></tr>`;
+    }
+}
+
+document.getElementById('btnAtualizarAuditoria').addEventListener('click', carregarAuditoria);

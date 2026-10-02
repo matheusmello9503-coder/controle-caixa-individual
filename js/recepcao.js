@@ -6,14 +6,11 @@ import {
 import { auth, db } from "./firebase-init.js";
 import { FUSO_HORARIO, HORA_INICIO, HORA_FIM } from "./firebase-config.js";
 import { montarNavRapida } from "./nav-rapida.js";
+import { formatarMoeda, totaisPorGrupo, registrarAuditoria } from "./caixa-compartilhado.js";
 
 let usuarioAtual = null;
 let cancelarOuvinte = null;
 let ultimaLista = [];
-
-function formatarMoeda(valor) {
-    return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 function dataLocalStr() {
     const partes = new Intl.DateTimeFormat('en-CA', { timeZone: FUSO_HORARIO, year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -326,22 +323,6 @@ function renderizarResumoHero() {
     `;
 }
 
-// ANEXO 1: quando um atendimento tem mais de um exame (mesmo grupoId em
-// mais de um lancamento), soma o valor de todas as linhas daquele grupo -
-// para mostrar, junto do nome do paciente, o total daquele atendimento
-// inteiro. So compensa mostrar quando ha mais de 1 lancamento no grupo;
-// com exame unico o valor da propria linha ja E o total.
-function totaisPorGrupo(lista) {
-    const somaPorGrupo = {};
-    const qtdPorGrupo = {};
-    lista.forEach(l => {
-        if (!l.grupoId) return;
-        somaPorGrupo[l.grupoId] = (somaPorGrupo[l.grupoId] || 0) + (l.valor || 0);
-        qtdPorGrupo[l.grupoId] = (qtdPorGrupo[l.grupoId] || 0) + 1;
-    });
-    return { somaPorGrupo, qtdPorGrupo };
-}
-
 function renderizarTabela() {
     renderizarResumoHero();
     const corpo = document.getElementById('corpoTabela');
@@ -414,8 +395,10 @@ function renderizarTabela() {
 
 async function excluirLancamento(id) {
     if (!confirm('Excluir este exame do atendimento? (Isso não apaga os outros exames do mesmo recebimento, se houver.)')) return;
+    const antes = ultimaLista.find(x => x.id === id);
     try {
         await deleteDoc(doc(db, 'lancamentos', id));
+        await registrarAuditoria(db, { acao: 'excluir', lancamentoId: id, antes, depois: null, quem: usuarioAtual });
     } catch (e) {
         mostrarErro('Não foi possível excluir (' + e.code + '). Verifique se ainda está dentro do horário permitido e se o lançamento não é mais antigo que 3 dias.');
     }
@@ -479,6 +462,7 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             // Edicao afeta somente o exame desta linha (nao propaga para outros
             // exames do mesmo recebimento automaticamente). Pagamento dividido
             // nao se aplica aqui (o botao fica escondido em modo edicao).
+            const antes = ultimaLista.find(x => x.id === editandoId);
             const formaPagamento = document.getElementById('forma_pagamento').value;
             const linha = listaExames.querySelector('.linha-exame');
             const exame = linha.querySelector('.campo-exame').value;
@@ -490,10 +474,12 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
                 return;
             }
 
+            const depois = { nomePaciente, exame, valor, formaPagamento, titulo, numeroNf, tesouraria };
             await updateDoc(doc(db, 'lancamentos', editandoId), {
-                nomePaciente, exame, valor, formaPagamento, titulo, numeroNf, tesouraria,
+                ...depois,
                 editadoEm: serverTimestamp()
             });
+            await registrarAuditoria(db, { acao: 'editar', lancamentoId: editandoId, antes, depois, quem: usuarioAtual });
             mostrarOk('Exame atualizado.');
             entrarModoNovo();
         } else {
