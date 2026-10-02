@@ -24,6 +24,7 @@
         <nav class="sidebar-nav">
             <button class="sidebar-link ativo" data-aba="fechamento"><span class="icone">&#128202;</span> Confer&ecirc;ncia de caixa</button>
             <button class="sidebar-link" data-aba="historico"><span class="icone">&#128200;</span> Hist&oacute;rico</button>
+            <button class="sidebar-link" data-aba="auditoria"><span class="icone">&#128269;</span> Auditoria</button>
             <button class="sidebar-link" data-aba="usuarios"><span class="icone">&#128101;</span> Usu&aacute;rios</button>
             <div class="sidebar-secao">Recep&ccedil;&atilde;o</div>
             <a href="recepcao.html" class="sidebar-link"><span class="icone">&#128203;</span> Lan&ccedil;ar atendimento</a>
@@ -156,6 +157,32 @@
                         <table>
                             <thead><tr><th>Data</th><th>Status</th><th>Lan&ccedil;amentos</th><th>Total</th><th>Despesas</th><th>Dep&oacute;sito</th></tr></thead>
                             <tbody id="corpoHistorico"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="abaAuditoria" style="display:none">
+                <div class="painel">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap">
+                        <div>
+                            <h2 style="margin-bottom:4px">Log de altera&ccedil;&otilde;es</h2>
+                            <p class="texto-apoio" style="margin-top:0">Todas as edi&ccedil;&otilde;es e exclus&otilde;es de lan&ccedil;amentos feitas no sistema, mais recentes primeiro. Este registro n&atilde;o pode ser alterado nem apagado.</p>
+                        </div>
+                        <button type="button" class="botao secundario pequeno" id="btnAtualizarAuditoria">&#128260; Atualizar</button>
+                    </div>
+                    <div class="tabela-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Quando</th>
+                                    <th>Quem</th>
+                                    <th>A&ccedil;&atilde;o</th>
+                                    <th>Lan&ccedil;amento</th>
+                                    <th>O que mudou</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoAuditoria"></tbody>
                         </table>
                     </div>
                 </div>
