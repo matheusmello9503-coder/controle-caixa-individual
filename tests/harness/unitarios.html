@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Testes unitarios - caixa-compartilhado</title>
+<script type="importmap">
+{
+  "imports": {
+    "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js": "../mocks/firebase-firestore.js"
+  }
+}
+</script>
+</head>
+<body>
+<script src="xlsx.full.min.js"></script>
+<script type="module">
+import * as caixa from '../../js/caixa-compartilhado.js';
+window.__caixa = caixa;
+window.__prontoParaTeste = true;
+</script>
+</body>
+</html>
