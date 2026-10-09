@@ -107,14 +107,13 @@
 
                     <div id="listaExames"></div>
 
-                    <div class="cartao-resumo destaque" id="painelTotalAoVivo" style="margin:4px 0 16px">
-                        <div class="rotulo">Total deste atendimento</div>
-                        <div class="valor" id="valorTotalAoVivo">R$ 0,00</div>
-                    </div>
-
-                    <div style="display:flex; gap:10px; align-items:center; margin:10px 0 16px">
+                    <div class="linha-acoes-exame">
                         <button type="button" class="botao secundario pequeno" id="btnAddExame">+ Adicionar outro exame</button>
                         <span id="labelModoEdicao" style="font-size:12px;color:var(--cinza-texto);display:none">Editando um lan&ccedil;amento existente</span>
+                        <div class="total-ao-vivo" id="painelTotalAoVivo" role="status" aria-live="polite">
+                            <span class="rotulo">Total deste atendimento</span>
+                            <span class="valor" id="valorTotalAoVivo">R$ 0,00</span>
+                        </div>
                     </div>
 
                     <button type="submit" class="botao" id="btnSalvar">Lan&ccedil;ar atendimento</button>
@@ -137,7 +136,7 @@
                         <label>Valor (R$)</label>
                         <input type="number" class="campo-valor-dividido" step="0.01" min="0" required>
                     </div>
-                    <button type="button" class="botao perigo pequeno botao-remover-pagamento" style="height:38px">Remover</button>
+                    <button type="button" class="botao perigo pequeno botao-remover-pagamento" style="height:44px">Remover</button>
                 </div>
             </template>
 
@@ -163,7 +162,7 @@
                         <label>T&iacute;tulo (deste exame)</label>
                         <input type="text" class="campo-titulo">
                     </div>
-                    <button type="button" class="botao perigo pequeno botao-remover-exame" style="height:38px">Remover</button>
+                    <button type="button" class="botao perigo pequeno botao-remover-exame" style="height:44px">Remover</button>
                 </div>
             </template>
 

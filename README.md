@@ -65,7 +65,7 @@ e nao inclui despesas.
 ## Recepcao: forma de pagamento e total ao vivo
 
 A forma de pagamento comeca em branco ("Selecione...") e o lancamento nao
-salva sem escolher uma. Um cartao "Total deste atendimento" soma os exames
+salva sem escolher uma. Uma faixa compacta "Total deste atendimento", ao lado do botao de adicionar exame, soma os exames
 enquanto a pessoa digita, para conferir o valor total antes de escolher a
 forma de pagamento e salvar. Valores guardados no banco continuam sem acento
 (`Debito`, `Credito`, `Especie`, `Pix`); o acento so aparece na tela.
