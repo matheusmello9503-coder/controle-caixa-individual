@@ -1,0 +1,74 @@
+name: Testar e publicar no GitHub Pages
+
+# Roda automaticamente em todo push na branch main: primeiro a suite de
+# testes (tests/run.js); so publica no GitHub Pages se os testes passarem.
+# Isso substitui o fluxo manual de "gerar zip -> Upload files no GitHub",
+# que ja causou mais de uma vez uma tela ficar com um arquivo desatualizado
+# porque um dos arquivos alterados nao foi subido corretamente.
+on:
+  push:
+    branches: [main]
+  # Tambem pode ser disparado manualmente pela aba "Actions" do GitHub, sem
+  # precisar de um novo commit - util para re-publicar caso a configuracao
+  # do Pages tenha sido mudada por fora.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# So permite UMA publicacao em andamento por vez; se um novo push chegar
+# enquanto uma publicacao anterior ainda esta rodando, a anterior e
+# cancelada (nao tem sentido publicar uma versao que ja foi substituida).
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar o Playwright (so o necessario para os testes, nao faz parte do site)
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Rodar a suite de testes (tests/run.js)
+        run: node tests/run.js
+
+  publicar:
+    needs: testar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar o GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Montar a pasta do site (so o que o navegador precisa)
+        run: |
+          mkdir _site
+          cp -r css img js _site/
+          cp *.html CNAME _site/
+
+      - name: Empacotar o site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
