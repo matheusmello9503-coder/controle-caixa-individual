@@ -147,18 +147,17 @@
 /* Base fixa em 16px (o padrao do navegador). Usar rem em todo o resto ja
    garante boa leitura em qualquer resolucao, sem o "encolhimento" que um
    clamp() baseado em vw pode causar em monitores grandes. */
-/* Monitores grandes (22 polegadas e acima, 1920px ou mais de largura): a
-   interface foi desenhada para telas de notebook e ficava pequena e solta num
-   monitor desses, obrigando a pessoa a aumentar o zoom do navegador na mao.
-   Aqui a escala sobe sozinha conforme a largura da janela. Como o zoom manual
-   do navegador tambem muda essa largura, os dois nao se somam: quem ja usa 120%
-   continua vendo a mesma coisa. As alturas em vh dividem por --escala para a
+/* Tamanho da interface (--escala): a interface foi desenhada para telas de
+   notebook e ficava pequena num monitor de 22 polegadas ou mais. O valor vem
+   de js/escala.js (e de um script no <head> de cada pagina, para nao piscar):
+   na PRIMEIRA visita ele e sugerido pela largura da janela, e fica gravado no
+   navegador; depois a pessoa ajusta em "Tamanho da tela", no menu do nome.
+   De proposito NAO depende da largura da janela em CSS (media query): isso
+   anulava o zoom do navegador, porque diminuir o zoom aumenta a largura e a
+   escala subia junto. Gravada, ela se multiplica com o zoom normal (Ctrl + e
+   Ctrl -), como em qualquer site. As alturas em vh dividem por --escala para a
    pagina nao ganhar rolagem vertical sobrando. */
 :root { --escala: 1; }
-@media (min-width: 1700px) { :root { --escala: 1.15; } }
-@media (min-width: 1850px) { :root { --escala: 1.2; } }
-@media (min-width: 2200px) { :root { --escala: 1.4; } }
-@media (min-width: 2800px) { :root { --escala: 1.8; } }
 html { zoom: var(--escala); }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
@@ -508,7 +507,7 @@ h1, h2, h3 { font-family: inherit; }
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    min-width: 240px;
+    min-width: 280px;
     background: var(--branco);
     border: 1px solid var(--cinza-borda);
     border-radius: 12px;
@@ -576,6 +575,18 @@ h1, h2, h3 { font-family: inherit; }
     font-weight: 600;
     color: var(--texto-principal);
 }
+.nav-rapida-escala > span:first-child { white-space: nowrap; }
+.nav-rapida-escala { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; font-size: 0.88rem; font-weight: 600; color: var(--texto-principal); }
+.escala-controles { display: inline-flex; align-items: center; gap: 4px; }
+.escala-controles button {
+    min-width: 30px; height: 28px; padding: 0 8px;
+    border: 1px solid var(--cinza-borda); border-radius: 7px;
+    background: var(--branco); color: var(--tabela-cabecalho-texto);
+    font: inherit; font-weight: 700; cursor: pointer;
+}
+.escala-controles button:hover { background: var(--azul-claro); }
+.escala-controles button:focus-visible { outline: 2px solid var(--azul-vivo); outline-offset: 2px; }
+.escala-controles .escala-valor { min-width: 54px; }
 .interruptor-tema {
     position: relative;
     width: 40px;

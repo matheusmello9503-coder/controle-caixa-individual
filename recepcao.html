@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="stylesheet" href="css/style.css">
 <script>(function(){try{var t=localStorage.getItem("cerdilCaixaTema");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");else if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+<script>(function(){try{var e=parseFloat(localStorage.getItem("cerdilCaixaEscala"));if(!(e>=0.5&&e<=3)){var w=window.innerWidth;e=w>=2800?1.8:w>=2200?1.4:w>=1850?1.2:w>=1700?1.15:1;localStorage.setItem("cerdilCaixaEscala",String(e));}document.documentElement.style.setProperty("--escala",String(e));}catch(x){}})();</script>
 </head>
 <body>
 

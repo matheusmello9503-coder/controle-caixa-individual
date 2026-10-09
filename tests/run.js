@@ -544,7 +544,7 @@ async function registrarTestesInterface(browser) {
         }
     });
 
-    test('monitor grande: a escala sobe sozinha e a página não ganha rolagem horizontal nem a barra lateral estoura', async () => {
+    test('monitor grande: na primeira visita a escala é sugerida pela largura, sem rolagem horizontal e com a barra lateral do tamanho da janela', async () => {
         const casos = [[1366, 768, 1], [1536, 730, 1], [1920, 1080, 1.2], [2560, 1440, 1.4]];
         for (const [w, h, esperado] of casos) {
             const ctx = await browser.newContext({ viewport: { width: w, height: h } });
@@ -563,6 +563,48 @@ async function registrarTestesInterface(browser) {
             assertVerdadeiro(Math.abs(m.sidebar - m.alturaJanela) <= 2, `${w}px: barra lateral com ${m.sidebar}px numa janela de ${m.alturaJanela}px`);
             await ctx.close();
         }
+    });
+
+    test('zoom do navegador não anula a escala: mudar a largura da janela depois da primeira visita não muda o tamanho', async () => {
+        const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+        const p = await ctx.newPage();
+        const url = `http://localhost:${PORTA}/tests/harness/recepcao.html`;
+        const ler = async () => p.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--escala')));
+        await p.goto(url);
+        await p.waitForSelector('.topbar');
+        assertIgual(await ler(), 1.2, 'Escala na primeira visita');
+        // Zoom de 120% no navegador deixa a janela com ~1600px; 80% deixa com ~2400px.
+        for (const largura of [1600, 2400]) {
+            await p.setViewportSize({ width: largura, height: 1080 });
+            await p.reload();
+            await p.waitForSelector('.topbar');
+            assertIgual(await ler(), 1.2, `Escala após o zoom do navegador deixar a janela com ${largura}px`);
+        }
+        await ctx.close();
+    });
+
+    test('menu do nome: botões de tamanho da tela mudam, gravam e podem voltar ao sugerido', async () => {
+        const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+        const p = await ctx.newPage();
+        const url = `http://localhost:${PORTA}/tests/harness/recepcao.html`;
+        const ler = async () => p.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--escala')));
+        await p.goto(url);
+        await p.waitForSelector('#navRapidaToggle');
+        await p.click('#navRapidaToggle');
+        assertIgual((await p.textContent('#escalaValor')).trim(), '120%', 'Valor mostrado no início');
+        await p.click('#escalaMais');
+        assertIgual(await ler(), 1.3, 'Escala depois de +');
+        assertIgual((await p.textContent('#escalaValor')).trim(), '130%', 'Valor mostrado depois de +');
+        await p.reload();
+        await p.waitForSelector('.topbar');
+        assertIgual(await ler(), 1.3, 'Escala gravada depois de recarregar');
+        await p.click('#navRapidaToggle');
+        await p.click('#escalaMenos');
+        await p.click('#escalaMenos');
+        assertIgual(await ler(), 1.1, 'Escala depois de dois −');
+        await p.click('#escalaValor');
+        assertIgual(await ler(), 1.2, 'Voltar ao sugerido para 1920px');
+        await ctx.close();
     });
 
     test('desktop: o botão de menu do celular não aparece', async () => {

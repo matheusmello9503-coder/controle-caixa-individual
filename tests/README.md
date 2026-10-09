@@ -80,7 +80,7 @@ O resultado fica em `tests/harness/` (gerado, não deve ser editado à mão —
 - **Fechamento** (admin e supervisor): despesas digitadas entram no Total
   líquido e abatem o depósito sugerido (além dos testes puros de
   `totalLiquido`, `sugerirDeposito` e `rotuloForma`).
-- **Interface**: menu em gaveta no celular, nenhuma tela com rolagem
+- **Interface**: tamanho da tela (sugestão na primeira visita, gravado, e não anulado pelo zoom do navegador), menu em gaveta no celular, nenhuma tela com rolagem
   horizontal em 390px, tema escuro/claro seguindo o sistema, contraste mínimo
   de 4,5:1 do texto secundário e rótulos de formulário ligados aos campos.
 

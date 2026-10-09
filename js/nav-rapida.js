@@ -9,12 +9,14 @@
 //       atendimentos avulsos, entao precisa ir e voltar entre as duas.
 //     - Recepcao: tem UMA tela so, entao nao ve essa opcao.
 // - Tema claro/escuro: um interruptor, salvo no navegador da pessoa.
+// - Tamanho da tela: botoes de menos/mais (ver js/escala.js), salvo no navegador.
 // - "Alterar senha": pede a senha atual (reautenticacao exigida pelo
 //   Firebase para operacoes sensiveis) e troca para uma nova.
 // - "Sair".
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { auth } from "./firebase-init.js";
 import { aplicarTema, temaAtualEhEscuro, alternarTema } from "./tema.js";
+import { escalaAtual, escalaSugerida, definirEscala, passoEscala } from "./escala.js";
 
 const TELA_DO_PERFIL = {
     admin: { href: 'admin.html', rotulo: 'Administrador' },
@@ -110,6 +112,14 @@ export function montarNavRapida({ perfil, nome, paginaAtual }) {
                 <span>&#127769; Modo escuro</span>
                 <button type="button" class="interruptor-tema ${temaAtualEhEscuro() ? 'ativo' : ''}" id="botaoInterruptorTema" aria-label="Alternar modo escuro"></button>
             </div>
+            <div class="nav-rapida-escala">
+                <span>&#128269; Tamanho da tela</span>
+                <span class="escala-controles">
+                    <button type="button" id="escalaMenos" aria-label="Diminuir o tamanho da tela">&minus;</button>
+                    <button type="button" id="escalaValor" class="escala-valor" title="Voltar ao tamanho sugerido para esta tela" aria-label="Tamanho atual; clique para voltar ao sugerido"></button>
+                    <button type="button" id="escalaMais" aria-label="Aumentar o tamanho da tela">+</button>
+                </span>
+            </div>
             <div class="nav-rapida-separador"></div>
             <button type="button" class="nav-rapida-item" id="navRapidaAlterarSenha">
                 <span class="icone">&#128273;</span> Alterar senha
@@ -139,6 +149,13 @@ export function montarNavRapida({ perfil, nome, paginaAtual }) {
         const escuroAgora = alternarTema();
         ev.currentTarget.classList.toggle('ativo', escuroAgora);
     });
+
+    const botaoValorEscala = document.getElementById('escalaValor');
+    const mostrarEscala = () => { botaoValorEscala.textContent = Math.round(escalaAtual() * 100) + '%'; };
+    mostrarEscala();
+    document.getElementById('escalaMenos').addEventListener('click', (ev) => { ev.stopPropagation(); passoEscala(-1); mostrarEscala(); });
+    document.getElementById('escalaMais').addEventListener('click', (ev) => { ev.stopPropagation(); passoEscala(1); mostrarEscala(); });
+    botaoValorEscala.addEventListener('click', (ev) => { ev.stopPropagation(); definirEscala(escalaSugerida()); mostrarEscala(); });
 
     document.getElementById('navRapidaAlterarSenha').addEventListener('click', () => {
         menu.classList.remove('aberto');

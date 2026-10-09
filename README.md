@@ -75,11 +75,15 @@ forma de pagamento e salvar. Valores guardados no banco continuam sem acento
 - Em telas abaixo de 880px (celular, tablet em pe) a barra lateral vira uma
   gaveta aberta pelo botao de menu no topo; em todas as telas, nenhum
   formulario passa da largura da tela.
-- Em monitores grandes (a partir de 1700px de largura) a escala da
-  interface sobe sozinha (1,15 ate 1,8 conforme a largura), como se a pessoa
-  tivesse aumentado o zoom do navegador. Os pontos de corte ficam em
-  `css/style.css`, na variavel `--escala`. O zoom manual do navegador nao se
-  soma a isso, porque ele tambem muda a largura medida pela pagina.
+- Tamanho da tela: na primeira visita em cada navegador, a interface sugere
+  um tamanho pela largura da janela (115% a partir de 1700px, 120% a partir
+  de 1850px, 140% a partir de 2200px e 180% a partir de 2800px; abaixo
+  disso, 100%) e grava essa escolha. Depois, a pessoa ajusta em "Tamanho da
+  tela", no menu do nome no topo (botoes menos e mais; clicar na porcentagem
+  volta ao sugerido). O valor gravado se multiplica com o zoom normal do
+  navegador (Ctrl mais e Ctrl menos), que continua funcionando como em
+  qualquer site. A logica fica em `js/escala.js` (e numa copia minima no
+  `<head>` de cada pagina, para a tela nao pular de tamanho ao abrir).
 - Sem escolha manual, o tema segue o modo claro ou escuro do sistema
   operacional; a escolha feita no menu do topo continua valendo por cima.
 - O texto secundario tem contraste minimo de 4,5 para 1 nos dois temas, e os
