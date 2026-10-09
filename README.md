@@ -75,6 +75,11 @@ forma de pagamento e salvar. Valores guardados no banco continuam sem acento
 - Em telas abaixo de 880px (celular, tablet em pe) a barra lateral vira uma
   gaveta aberta pelo botao de menu no topo; em todas as telas, nenhum
   formulario passa da largura da tela.
+- Em monitores grandes (a partir de 1700px de largura) a escala da
+  interface sobe sozinha (1,15 ate 1,8 conforme a largura), como se a pessoa
+  tivesse aumentado o zoom do navegador. Os pontos de corte ficam em
+  `css/style.css`, na variavel `--escala`. O zoom manual do navegador nao se
+  soma a isso, porque ele tambem muda a largura medida pela pagina.
 - Sem escolha manual, o tema segue o modo claro ou escuro do sistema
   operacional; a escolha feita no menu do topo continua valendo por cima.
 - O texto secundario tem contraste minimo de 4,5 para 1 nos dois temas, e os

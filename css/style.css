@@ -147,6 +147,19 @@
 /* Base fixa em 16px (o padrao do navegador). Usar rem em todo o resto ja
    garante boa leitura em qualquer resolucao, sem o "encolhimento" que um
    clamp() baseado em vw pode causar em monitores grandes. */
+/* Monitores grandes (22 polegadas e acima, 1920px ou mais de largura): a
+   interface foi desenhada para telas de notebook e ficava pequena e solta num
+   monitor desses, obrigando a pessoa a aumentar o zoom do navegador na mao.
+   Aqui a escala sobe sozinha conforme a largura da janela. Como o zoom manual
+   do navegador tambem muda essa largura, os dois nao se somam: quem ja usa 120%
+   continua vendo a mesma coisa. As alturas em vh dividem por --escala para a
+   pagina nao ganhar rolagem vertical sobrando. */
+:root { --escala: 1; }
+@media (min-width: 1700px) { :root { --escala: 1.15; } }
+@media (min-width: 1850px) { :root { --escala: 1.2; } }
+@media (min-width: 2200px) { :root { --escala: 1.4; } }
+@media (min-width: 2800px) { :root { --escala: 1.8; } }
+html { zoom: var(--escala); }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
 body {
@@ -167,7 +180,7 @@ h1, h2, h3 { font-family: inherit; }
    TELA DE LOGIN
    ===================================================== */
 .tela-login {
-    min-height: 100vh;
+    min-height: calc(100vh / var(--escala));
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
 }
@@ -177,7 +190,9 @@ h1, h2, h3 { font-family: inherit; }
     background: #0c1c40 url('../img/login-fundo.jpg') center center / cover no-repeat;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    /* Texto no topo: a imagem de fundo ja traz a marca e o nome "cerdil" na
+       metade de baixo, e o texto no rodape ficava por cima deles. */
+    justify-content: flex-start;
     padding: clamp(28px, 4vw, 64px);
     color: #fff;
     overflow: hidden;
@@ -186,12 +201,12 @@ h1, h2, h3 { font-family: inherit; }
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(10, 22, 56, 0.15) 0%, rgba(9, 18, 46, 0.55) 78%, rgba(8, 16, 40, 0.82) 100%);
+    background: linear-gradient(180deg, rgba(8, 16, 40, 0.82) 0%, rgba(9, 18, 46, 0.5) 30%, rgba(10, 22, 56, 0.1) 60%, rgba(10, 22, 56, 0) 100%);
 }
 .login-visual-conteudo {
     position: relative;
     z-index: 1;
-    max-width: 460px;
+    max-width: 380px;
 }
 .login-visual-conteudo h2 {
     font-size: clamp(1.3rem, 1.4vw + 0.7rem, 1.9rem);
@@ -364,7 +379,7 @@ h1, h2, h3 { font-family: inherit; }
 .app-shell {
     display: grid;
     grid-template-columns: var(--sidebar-largura) 1fr;
-    min-height: 100vh;
+    min-height: calc(100vh / var(--escala));
 }
 
 .sidebar {
@@ -375,7 +390,7 @@ h1, h2, h3 { font-family: inherit; }
     padding: 16px 14px;
     position: sticky;
     top: 0;
-    height: 100vh;
+    height: calc(100vh / var(--escala));
 }
 
 .sidebar-marca {
@@ -587,7 +602,7 @@ h1, h2, h3 { font-family: inherit; }
 
 .conteudo {
     padding: clamp(16px, 1.8vw, 26px) clamp(16px, 2.4vw, 36px) 50px;
-    max-width: 1400px;
+    max-width: 1700px;
     width: 100%;
 }
 
@@ -749,7 +764,7 @@ h1, h2, h3 { font-family: inherit; }
     padding: 24px 26px;
     width: 100%;
     max-width: 640px;
-    max-height: 90vh;
+    max-height: calc(90vh / var(--escala));
     overflow-y: auto;
 }
 .modal-caixa h2 { color: var(--tabela-cabecalho-texto); }

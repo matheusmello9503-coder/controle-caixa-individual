@@ -544,6 +544,27 @@ async function registrarTestesInterface(browser) {
         }
     });
 
+    test('monitor grande: a escala sobe sozinha e a página não ganha rolagem horizontal nem a barra lateral estoura', async () => {
+        const casos = [[1366, 768, 1], [1536, 730, 1], [1920, 1080, 1.2], [2560, 1440, 1.4]];
+        for (const [w, h, esperado] of casos) {
+            const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+            const p = await ctx.newPage();
+            await p.goto(`http://localhost:${PORTA}/tests/harness/recepcao.html`);
+            await p.waitForSelector('.topbar');
+            const m = await p.evaluate(() => ({
+                escala: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--escala')),
+                largura: document.documentElement.scrollWidth,
+                janela: window.innerWidth,
+                sidebar: document.querySelector('.sidebar').getBoundingClientRect().height,
+                alturaJanela: window.innerHeight
+            }));
+            assertIgual(m.escala, esperado, `Escala em ${w}px`);
+            assertVerdadeiro(m.largura <= m.janela + 1, `${w}px: página com ${m.largura}px de largura`);
+            assertVerdadeiro(Math.abs(m.sidebar - m.alturaJanela) <= 2, `${w}px: barra lateral com ${m.sidebar}px numa janela de ${m.alturaJanela}px`);
+            await ctx.close();
+        }
+    });
+
     test('desktop: o botão de menu do celular não aparece', async () => {
         const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
         const p = await ctx.newPage();
