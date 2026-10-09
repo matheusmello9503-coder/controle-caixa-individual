@@ -6,7 +6,7 @@ import {
 import { auth, db } from "./firebase-init.js";
 import { FUSO_HORARIO, HORA_INICIO, HORA_FIM } from "./firebase-config.js";
 import { montarNavRapida } from "./nav-rapida.js";
-import { formatarMoeda, totaisPorGrupo, registrarAuditoria } from "./caixa-compartilhado.js";
+import { formatarMoeda, rotuloForma, ligarRotulos, totaisPorGrupo, registrarAuditoria } from "./caixa-compartilhado.js";
 
 let usuarioAtual = null;
 let cancelarOuvinte = null;
@@ -83,6 +83,18 @@ function atualizarAvisoHorario() {
 const listaExames = document.getElementById('listaExames');
 const modeloLinhaExame = document.getElementById('modeloLinhaExame');
 
+// Mostra, em tempo real, o total dos exames adicionados ao atendimento -
+// antes de salvar qualquer coisa. Existe porque a equipe relatou que
+// lancava o atendimento so para descobrir o valor total somado (e so
+// depois, na correria, acabava esquecendo de corrigir a forma de
+// pagamento que tinha escolhido so para conseguir salvar). Com o total
+// visivel desde o preenchimento, nao ha mais motivo para salvar antes de
+// saber o valor combinado com o paciente.
+function atualizarTotalAoVivo() {
+    const el = document.getElementById('valorTotalAoVivo');
+    if (el) el.textContent = formatarMoeda(totalDosExames());
+}
+
 function adicionarLinhaExame() {
     const fragmento = modeloLinhaExame.content.cloneNode(true);
     const linha = fragmento.querySelector('.linha-exame');
@@ -90,20 +102,27 @@ function adicionarLinhaExame() {
         if (listaExames.querySelectorAll('.linha-exame').length > 1) {
             linha.remove();
             atualizarResumoPagamentoDividido();
+            atualizarTotalAoVivo();
         }
     });
-    linha.querySelector('.campo-valor').addEventListener('input', atualizarResumoPagamentoDividido);
+    linha.querySelector('.campo-valor').addEventListener('input', () => {
+        atualizarResumoPagamentoDividido();
+        atualizarTotalAoVivo();
+    });
+    ligarRotulos(linha);
     listaExames.appendChild(fragmento);
 }
 
 document.getElementById('btnAddExame').addEventListener('click', () => {
     adicionarLinhaExame();
     atualizarResumoPagamentoDividido();
+    atualizarTotalAoVivo();
 });
 
 function limparLinhasExame() {
     listaExames.innerHTML = '';
     adicionarLinhaExame();
+    atualizarTotalAoVivo();
 }
 
 // ---------- Pagamento dividido (mais de uma forma no mesmo atendimento) ----------
@@ -137,6 +156,7 @@ function adicionarLinhaPagamento(forma, valor) {
             atualizarResumoPagamentoDividido();
         }
     });
+    ligarRotulos(linha);
     listaPagamentosDivididos.appendChild(fragmento);
 }
 
@@ -350,7 +370,7 @@ function renderizarTabela() {
             <td>${mesmoGrupoDoAnterior ? '&#8618;' : l.nomePaciente}</td>
             <td>${l.exame}</td>
             <td>${formatarMoeda(l.valor)}</td>
-            <td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
+            <td>${rotuloForma(l.formaPagamento)}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
             <td>${l.titulo || '-'}</td>
             <td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
@@ -428,6 +448,7 @@ function editarLancamento(id) {
     linha.querySelector('.campo-exame').value = l.exame;
     linha.querySelector('.campo-valor').value = l.valor;
     linha.querySelector('.campo-titulo').value = l.titulo || '';
+    atualizarTotalAoVivo();
 
     document.getElementById('btnAddExame').style.display = 'none';
     document.getElementById('labelModoEdicao').style.display = 'inline';
@@ -471,6 +492,10 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
 
             if (!exame || isNaN(valor) || valor <= 0) {
                 mostrarErro('Preencha exame e valor corretamente.');
+                return;
+            }
+            if (!formaPagamento) {
+                mostrarErro('Selecione a forma de pagamento.');
                 return;
             }
 
@@ -565,6 +590,10 @@ document.getElementById('formLancamento').addEventListener('submit', async (ev) 
             }
 
             const formaPagamento = document.getElementById('forma_pagamento').value;
+            if (!formaPagamento) {
+                mostrarErro('Selecione a forma de pagamento.');
+                return;
+            }
 
             exames.forEach(e => {
                 const novaRef = doc(collection(db, 'lancamentos'));

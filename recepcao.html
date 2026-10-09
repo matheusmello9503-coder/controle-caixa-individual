@@ -44,7 +44,7 @@
 
             <div class="linha-toolbar">
                 <div class="campo" style="margin-bottom:0">
-                    <label>Data</label>
+                    <label for="dataSelecionada">Data</label>
                     <input type="date" id="dataSelecionada">
                 </div>
                 <button type="button" class="botao secundario pequeno" id="btnDataHoje">Hoje</button>
@@ -66,12 +66,13 @@
                 <form id="formLancamento">
                     <div class="form-linha" style="grid-template-columns: 1.6fr 0.9fr 1fr 0.7fr; margin-bottom:14px">
                         <div class="campo">
-                            <label>Paciente</label>
+                            <label for="nome_paciente">Paciente</label>
                             <input type="text" id="nome_paciente" required>
                         </div>
                         <div class="campo">
-                            <label>Pagamento</label>
+                            <label for="forma_pagamento">Pagamento</label>
                             <select id="forma_pagamento" required>
+                                <option value="" selected disabled>Selecione...</option>
                                 <option value="Debito">D&eacute;bito</option>
                                 <option value="Credito">Cr&eacute;dito</option>
                                 <option value="Especie">Esp&eacute;cie</option>
@@ -79,7 +80,7 @@
                             </select>
                         </div>
                         <div class="campo">
-                            <label>N&ordm; NF (do recebimento)</label>
+                            <label for="numero_nf">N&ordm; NF (do recebimento)</label>
                             <input type="text" id="numero_nf">
                         </div>
                         <div class="check-linha">
@@ -106,6 +107,11 @@
 
                     <div id="listaExames"></div>
 
+                    <div class="cartao-resumo destaque" id="painelTotalAoVivo" style="margin:4px 0 16px">
+                        <div class="rotulo">Total deste atendimento</div>
+                        <div class="valor" id="valorTotalAoVivo">R$ 0,00</div>
+                    </div>
+
                     <div style="display:flex; gap:10px; align-items:center; margin:10px 0 16px">
                         <button type="button" class="botao secundario pequeno" id="btnAddExame">+ Adicionar outro exame</button>
                         <span id="labelModoEdicao" style="font-size:12px;color:var(--cinza-texto);display:none">Editando um lan&ccedil;amento existente</span>
@@ -120,6 +126,7 @@
                     <div class="campo">
                         <label>Forma</label>
                         <select class="campo-forma-dividida" required>
+                            <option value="" selected disabled>Selecione...</option>
                             <option value="Debito">D&eacute;bito</option>
                             <option value="Credito">Cr&eacute;dito</option>
                             <option value="Especie">Esp&eacute;cie</option>

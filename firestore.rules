@@ -95,20 +95,23 @@ service cloud.firestore {
         && request.resource.data.formaPagamento in ['Debito', 'Credito', 'Especie', 'Pix']
         && (souGerencial() || (souRecepcaoAtivo() && dentroDoHorarioPermitido()));
 
-      // Edicao e exclusao: o administrador pode sempre. O supervisor pode
-      // corrigir qualquer lancamento (parte do fechamento), sem restricao
-      // de horario. A recepcao so pode mexer no proprio lancamento, dentro
-      // do horario permitido, e apenas se o lancamento foi criado hoje ou
-      // ontem (no maximo 1 dia atras) - comparando a DATA local (nao um
-      // numero fixo de horas), entao um lancamento de ontem as 18h continua
-      // editavel hoje de manha, do mesmo jeito que um de ontem as 8h.
+      // Edicao e exclusao: o administrador pode sempre, em qualquer dia,
+      // periodo e de qualquer atendente (nao ha nenhuma restricao de tempo
+      // para ele). O supervisor pode corrigir qualquer lancamento (parte do
+      // fechamento), tambem sem restricao de horario, dia ou atendente. A
+      // recepcao so pode mexer no proprio lancamento, dentro do horario
+      // permitido, e apenas se o lancamento foi criado ha no maximo 3 dias
+      // (comparando a DATA local, nao um numero fixo de horas, entao um
+      // lancamento de 3 dias atras as 18h continua editavel hoje de manha,
+      // do mesmo jeito que um de 3 dias atras as 8h) - isso cobre casos como
+      // uma queda de energia que impede fechar os lancamentos no mesmo dia.
       allow update, delete: if souAdmin()
         || souSupervisorAtivo()
         || (
           souRecepcaoAtivo()
           && resource.data.usuarioId == request.auth.uid
           && dentroDoHorarioPermitido()
-          && diaLocalDeHoje() - diaLocalDoMomento(resource.data.criadoEm) <= 1
+          && diaLocalDeHoje() - diaLocalDoMomento(resource.data.criadoEm) <= 3
         );
     }
 
@@ -117,6 +120,26 @@ service cloud.firestore {
     // com despesas e deposito). A recepcao nunca ve isso.
     match /fechamentos/{data} {
       allow read, write: if souGerencial();
+    }
+
+    // ---------- auditoria (log de edicao/exclusao de lancamentos) ----------
+    // Cada vez que um lancamento e editado ou excluido, a tela grava aqui um
+    // registro com quem fez, quando, e o que mudou (valor antes/depois de
+    // cada campo) - isso NAO existia antes; agora fica registrado mesmo que
+    // o proprio lancamento tenha sido apagado. Qualquer pessoa logada e
+    // ativa pode CRIAR um registro (precisa ser criado no exato momento em
+    // que ela mesma edita/exclui algo, em nome dela mesma - nunca em nome de
+    // outra pessoa). So admin e supervisor podem LER o log (e', junto com o
+    // fechamento, informacao gerencial). Ninguem pode editar ou apagar um
+    // registro de auditoria depois de criado - e um log, tem que ser
+    // imutavel para servir de prova de verdade.
+    match /auditoria/{registroId} {
+      allow read: if souGerencial();
+      allow create: if estaLogado()
+        && request.resource.data.usuarioId == request.auth.uid
+        && (meuUsuario().ativo == true)
+        && request.resource.data.acao in ['editar', 'excluir'];
+      allow update, delete: if false;
     }
   }
 }

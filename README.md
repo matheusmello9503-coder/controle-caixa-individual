@@ -52,6 +52,35 @@ aquela tela com a MESMA conta logada; ninguem consegue "virar" outro
 perfil por ali. As permissoes de verdade continuam sendo aplicadas pelo
 `firestore.rules`, no servidor.
 
+## Fechamento do dia: despesas e Total liquido
+
+Nas telas de administrador e supervisor, o campo "Despesas" do fechamento
+agora entra na conta assim que e digitado: o resumo mostra o valor das
+despesas e o **Total liquido (apos despesas)**, que e o Total Geral menos as
+despesas. A sugestao de deposito tambem passa a descontar as despesas da
+Especie (premissa: as despesas sao pagas com o dinheiro em especie do
+caixa). O campo Deposito continua editavel. A planilha exportada nao mudou
+e nao inclui despesas.
+
+## Recepcao: forma de pagamento e total ao vivo
+
+A forma de pagamento comeca em branco ("Selecione...") e o lancamento nao
+salva sem escolher uma. Um cartao "Total deste atendimento" soma os exames
+enquanto a pessoa digita, para conferir o valor total antes de escolher a
+forma de pagamento e salvar. Valores guardados no banco continuam sem acento
+(`Debito`, `Credito`, `Especie`, `Pix`); o acento so aparece na tela.
+
+## Interface e acessibilidade
+
+- Em telas abaixo de 880px (celular, tablet em pe) a barra lateral vira uma
+  gaveta aberta pelo botao de menu no topo; em todas as telas, nenhum
+  formulario passa da largura da tela.
+- Sem escolha manual, o tema segue o modo claro ou escuro do sistema
+  operacional; a escolha feita no menu do topo continua valendo por cima.
+- O texto secundario tem contraste minimo de 4,5 para 1 nos dois temas, e os
+  rotulos dos formularios estao ligados aos campos (leitor de tela e clique
+  no rotulo).
+
 ## Historico (dashboard de varios dias)
 
 As telas de administrador e supervisor tem uma aba "Historico", com um

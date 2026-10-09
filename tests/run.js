@@ -80,6 +80,7 @@ async function main() {
         await registrarTestesAdmin(browser);
         await registrarTestesSupervisor(browser);
         await registrarTestesRecepcao(browser);
+        await registrarTestesInterface(browser);
         await rodarTudo();
     } finally {
         await browser.close();
@@ -200,6 +201,25 @@ async function registrarTestesUnitarios(browser) {
         assertIgual(linhaTotalGeral['Valor (R$)'], resumoTela.totalGeral, 'Total geral da planilha deve bater com o da tela');
     });
 
+
+    test('totalLiquido desconta as despesas do Total Geral', async () => {
+        assertIgual(await chamar('totalLiquido', 930, 100), 830, 'Total líquido');
+        assertIgual(await chamar('totalLiquido', 100, undefined), 100, 'Sem despesas, líquido = total');
+        assertIgual(await chamar('totalLiquido', 50, 80), -30, 'Despesa maior que o total fica negativa (aparece, não esconde)');
+    });
+
+    test('sugerirDeposito tira as despesas da espécie e nunca sugere valor negativo', async () => {
+        assertIgual(await chamar('sugerirDeposito', 80, 30), 50, 'Espécie 80 com despesa 30');
+        assertIgual(await chamar('sugerirDeposito', 80, 0), 80, 'Sem despesas');
+        assertIgual(await chamar('sugerirDeposito', 80, 200), 0, 'Despesa maior que a espécie');
+    });
+
+    test('rotuloForma mostra acento na tela sem mudar o valor gravado', async () => {
+        assertIgual(await chamar('rotuloForma', 'Debito'), 'Débito', 'Débito');
+        assertIgual(await chamar('rotuloForma', 'Credito'), 'Crédito', 'Crédito');
+        assertIgual(await chamar('rotuloForma', 'Especie'), 'Espécie', 'Espécie');
+        assertIgual(await chamar('rotuloForma', 'Pix'), 'Pix', 'Pix');
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +300,30 @@ async function registrarTestesAdmin(browser) {
         assertIgual(nomeArquivo, `cerdil_caixa_${DATAS_SEED.DOIS_DIAS_ATRAS}_a_${DATAS_SEED.HOJE}.xlsx`, 'Nome do arquivo deveria refletir o período escolhido');
     });
 
+
+    test('admin: despesas entram no Total líquido e abatem o depósito sugerido', async () => {
+        await page.click('.sidebar-link[data-aba="fechamento"]');
+        await page.fill('#dataSelecionada', DATAS_SEED.HOJE);
+        await page.dispatchEvent('#dataSelecionada', 'change');
+        await page.waitForTimeout(400);
+        const lerCartao = (rotulo) => page.evaluate((r) => {
+            const c = Array.from(document.querySelectorAll('#grade-resumo .cartao-resumo'))
+                .find(el => el.querySelector('.rotulo').textContent.includes(r));
+            return c ? c.querySelector('.valor').textContent.replace(/\u00a0/g, ' ') : null;
+        }, rotulo);
+
+        assertVerdadeiro((await lerCartao('líquido')).includes('80,00'), 'Sem despesas, líquido = total (R$ 80,00)');
+        assertIgual(await page.inputValue('#deposito'), '80.00', 'Depósito sugerido sem despesas');
+
+        await page.fill('#despesas', '30');
+        assertVerdadeiro((await lerCartao('Despesas')).includes('30,00'), 'Cartão Despesas');
+        assertVerdadeiro((await lerCartao('líquido')).includes('50,00'), 'Total líquido deveria cair para R$ 50,00');
+        assertIgual(await page.inputValue('#deposito'), '50.00', 'Depósito deveria cair para 50,00');
+
+        await page.fill('#despesas', '200');
+        assertIgual(await page.inputValue('#deposito'), '0.00', 'Despesa maior que a espécie: depósito 0, nunca negativo');
+        assertVerdadeiro((await lerCartao('líquido')).includes('120,00'), 'Líquido negativo continua visível');
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -326,6 +370,30 @@ async function registrarTestesSupervisor(browser) {
         await page.waitForTimeout(300);
         const corpo = await page.textContent('#corpoAuditoria');
         assertVerdadeiro(corpo.includes('Supervisor Teste'), 'Deveria listar o registro criado pelo supervisor');
+    });
+
+    test('supervisor: despesas entram no Total líquido e abatem o depósito sugerido', async () => {
+        await page.click('.sidebar-link[data-aba="fechamento"]');
+        await page.fill('#dataSelecionada', DATAS_SEED.HOJE);
+        await page.dispatchEvent('#dataSelecionada', 'change');
+        await page.waitForTimeout(400);
+        const lerCartao = (rotulo) => page.evaluate((r) => {
+            const c = Array.from(document.querySelectorAll('#grade-resumo .cartao-resumo'))
+                .find(el => el.querySelector('.rotulo').textContent.includes(r));
+            return c ? c.querySelector('.valor').textContent.replace(/\u00a0/g, ' ') : null;
+        }, rotulo);
+
+        assertVerdadeiro((await lerCartao('líquido')).includes('80,00'), 'Sem despesas, líquido = total (R$ 80,00)');
+        assertIgual(await page.inputValue('#deposito'), '80.00', 'Depósito sugerido sem despesas');
+
+        await page.fill('#despesas', '30');
+        assertVerdadeiro((await lerCartao('Despesas')).includes('30,00'), 'Cartão Despesas');
+        assertVerdadeiro((await lerCartao('líquido')).includes('50,00'), 'Total líquido deveria cair para R$ 50,00');
+        assertIgual(await page.inputValue('#deposito'), '50.00', 'Depósito deveria cair para 50,00');
+
+        await page.fill('#despesas', '200');
+        assertIgual(await page.inputValue('#deposito'), '0.00', 'Despesa maior que a espécie: depósito 0, nunca negativo');
+        assertVerdadeiro((await lerCartao('líquido')).includes('120,00'), 'Líquido negativo continua visível');
     });
 }
 
@@ -378,6 +446,157 @@ async function registrarTestesRecepcao(browser) {
         assertIgual(registros[0].usuarioNome, 'Recepcao Teste', 'Autoria deveria ser a recepcionista logada');
         assertIgual(registros[0].mudancas.valor.de, 60, 'Valor anterior incorreto no log');
         assertIgual(registros[0].mudancas.valor.para, 70, 'Valor novo incorreto no log');
+    });
+
+    test('recepção: forma de pagamento começa em branco e o lançamento não salva sem escolher', async () => {
+        const p = await browser.newPage();
+        await p.goto(`http://localhost:${PORTA}/tests/harness/recepcao.html`);
+        await p.waitForSelector('#formLancamento');
+        await p.waitForTimeout(400);
+        assertIgual(await p.inputValue('#forma_pagamento'), '', 'Não pode vir com Débito (ou outra forma) já marcada');
+        const antes = await p.evaluate(() => Object.keys(window.__db.lancamentos || {}).length);
+        await p.fill('#nome_paciente', 'Teste Sem Pagamento');
+        await p.locator('.linha-exame .campo-valor').first().fill('90');
+        await p.click('#btnSalvar');
+        await p.waitForTimeout(300);
+        const depois = await p.evaluate(() => Object.keys(window.__db.lancamentos || {}).length);
+        assertIgual(depois, antes, 'Nada deveria ser gravado sem forma de pagamento');
+
+        await p.selectOption('#forma_pagamento', 'Pix');
+        await p.click('#btnSalvar');
+        await p.waitForTimeout(400);
+        const final = await p.evaluate(() => Object.keys(window.__db.lancamentos || {}).length);
+        assertIgual(final, antes + 1, 'Com a forma escolhida, o lançamento deveria salvar');
+        assertIgual(await p.inputValue('#forma_pagamento'), '', 'Depois de salvar, a forma volta para em branco (não herda a anterior)');
+    });
+
+    test('recepção: total do atendimento aparece ao vivo, antes de salvar', async () => {
+        const p = await browser.newPage();
+        await p.goto(`http://localhost:${PORTA}/tests/harness/recepcao.html`);
+        await p.waitForSelector('#formLancamento');
+        await p.waitForTimeout(400);
+        const ler = async () => (await p.textContent('#valorTotalAoVivo')).replace(/\u00a0/g, ' ');
+        assertVerdadeiro((await ler()).includes('0,00'), 'Começa em R$ 0,00');
+        await p.locator('.linha-exame .campo-valor').first().fill('100');
+        assertVerdadeiro((await ler()).includes('100,00'), 'Um exame de 100');
+        await p.click('#btnAddExame');
+        await p.locator('.linha-exame .campo-valor').nth(1).fill('50.5');
+        assertVerdadeiro((await ler()).includes('150,50'), 'Dois exames somam 150,50');
+        await p.locator('.botao-remover-exame').nth(1).click();
+        assertVerdadeiro((await ler()).includes('100,00'), 'Remover o exame volta a soma para 100');
+    });
+
+    test('recepção: rótulos das linhas de exame e pagamento ficam ligados aos campos (for/id)', async () => {
+        const p = await browser.newPage();
+        await p.goto(`http://localhost:${PORTA}/tests/harness/recepcao.html`);
+        await p.waitForSelector('#formLancamento');
+        await p.click('#btnAddExame');
+        const soltos = await p.evaluate(() => Array.from(document.querySelectorAll('#formLancamento label'))
+            .filter(l => !l.htmlFor || !document.getElementById(l.htmlFor)).map(l => l.textContent.trim()));
+        assertIgual(soltos, [], 'Todo label do formulário deve apontar para um campo existente');
+    });
+}
+
+// ---------------------------------------------------------------------------
+// 5) Interface: menu no celular, tema do sistema, contraste, rotulos
+// ---------------------------------------------------------------------------
+function luminancia(hex) {
+    const c = hex.replace('#', '').match(/../g).map(h => parseInt(h, 16) / 255)
+        .map(x => (x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contraste(a, b) {
+    const [x, y] = [luminancia(a), luminancia(b)].sort((m, n) => n - m);
+    return (x + 0.05) / (y + 0.05);
+}
+
+async function registrarTestesInterface(browser) {
+    test('celular: sidebar fica escondida e o botão de menu abre e fecha a navegação (admin)', async () => {
+        const ctx = await browser.newContext({ viewport: { width: 420, height: 800 } });
+        const p = await ctx.newPage();
+        await p.goto(`http://localhost:${PORTA}/tests/harness/admin.html`);
+        await p.waitForSelector('#menuMobileBotao', { timeout: 10000 });
+        const caixa = async () => p.locator('.sidebar').boundingBox();
+        assertVerdadeiro((await caixa()).x + (await caixa()).width <= 1, 'Sidebar deveria estar fora da tela com o menu fechado');
+
+        await p.click('#menuMobileBotao');
+        await p.waitForTimeout(350);
+        assertVerdadeiro((await caixa()).x >= -1, 'Sidebar deveria aparecer com o menu aberto');
+        assertIgual(await p.getAttribute('#menuMobileBotao', 'aria-expanded'), 'true', 'aria-expanded do botão');
+
+        await p.click('.sidebar-link[data-aba="historico"]');
+        await p.waitForTimeout(350);
+        assertVerdadeiro(await p.isVisible('#abaHistorico'), 'A aba Histórico deveria abrir pelo menu do celular');
+        assertVerdadeiro((await caixa()).x + (await caixa()).width <= 1, 'Escolher uma aba deveria fechar o menu');
+        await ctx.close();
+    });
+
+    test('celular: nenhuma tela passa da largura da tela (sem rolagem horizontal da página)', async () => {
+        for (const tela of ['recepcao', 'admin', 'supervisor']) {
+            const ctx = await browser.newContext({ viewport: { width: 390, height: 800 } });
+            const p = await ctx.newPage();
+            await p.goto(`http://localhost:${PORTA}/tests/harness/${tela}.html`);
+            await p.waitForSelector('.topbar');
+            await p.waitForTimeout(300);
+            const larguras = await p.evaluate(() => ({ doc: document.documentElement.scrollWidth, janela: window.innerWidth }));
+            assertVerdadeiro(larguras.doc <= larguras.janela + 1, `${tela}: página com ${larguras.doc}px numa tela de ${larguras.janela}px`);
+            await ctx.close();
+        }
+    });
+
+    test('desktop: o botão de menu do celular não aparece', async () => {
+        const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+        const p = await ctx.newPage();
+        await p.goto(`http://localhost:${PORTA}/tests/harness/admin.html`);
+        await p.waitForSelector('#menuMobileBotao', { state: 'attached', timeout: 10000 });
+        assertVerdadeiro(!(await p.isVisible('#menuMobileBotao')), 'Botão só existe visualmente em tela pequena');
+        await ctx.close();
+    });
+
+    test('tema: sem escolha salva, segue a preferência escura do sistema; com sistema claro, fica claro', async () => {
+        const lerFundo = async (esquema) => {
+            const ctx = await browser.newContext({ colorScheme: esquema });
+            const p = await ctx.newPage();
+            await p.goto(`http://localhost:${PORTA}/tests/harness/admin.html`);
+            await p.waitForSelector('.topbar');
+            const cor = await p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+            await ctx.close();
+            return cor;
+        };
+        assertIgual(await lerFundo('dark'), 'rgb(15, 21, 38)', 'Fundo escuro com sistema escuro');
+        assertIgual(await lerFundo('light'), 'rgb(243, 245, 250)', 'Fundo claro com sistema claro');
+    });
+
+    test('contraste: texto secundário (textos de apoio e rótulos) passa de 4,5:1 nos dois temas', async () => {
+        for (const esquema of ['light', 'dark']) {
+            const ctx = await browser.newContext({ colorScheme: esquema });
+            const p = await ctx.newPage();
+            await p.goto(`http://localhost:${PORTA}/tests/harness/admin.html`);
+            await p.waitForSelector('.topbar');
+            const v = await p.evaluate(() => {
+                const s = getComputedStyle(document.documentElement);
+                const g = (n) => s.getPropertyValue(n).trim();
+                return { texto: g('--cinza-texto-suave'), fundos: [g('--branco'), g('--fundo'), g('--azul-claro')] };
+            });
+            for (const fundo of v.fundos) {
+                const razao = contraste(v.texto, fundo);
+                assertVerdadeiro(razao >= 4.5, `Tema ${esquema}: ${v.texto} sobre ${fundo} = ${razao.toFixed(2)}:1 (mínimo 4,5)`);
+            }
+            await ctx.close();
+        }
+    });
+
+    test('acessibilidade: todo label do admin e do supervisor aponta para um campo existente', async () => {
+        for (const tela of ['admin', 'supervisor']) {
+            const ctx = await browser.newContext();
+            const p = await ctx.newPage();
+            await p.goto(`http://localhost:${PORTA}/tests/harness/${tela}.html`);
+            await p.waitForSelector('.topbar');
+            const soltos = await p.evaluate(() => Array.from(document.querySelectorAll('label'))
+                .filter(l => !l.htmlFor || !document.getElementById(l.htmlFor)).map(l => l.textContent.trim()));
+            assertIgual(soltos, [], `Labels sem campo ligado em ${tela}.html`);
+            await ctx.close();
+        }
     });
 }
 

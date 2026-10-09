@@ -27,8 +27,13 @@ function salvarTema(valor) {
     }
 }
 
+// Escolha manual (atributo no <html>) vence; sem escolha, vale a preferencia
+// do sistema operacional - o mesmo criterio do @media no css/style.css.
 export function temaAtualEhEscuro() {
-    return document.documentElement.getAttribute('data-theme') === 'dark';
+    const escolhido = document.documentElement.getAttribute('data-theme');
+    if (escolhido === 'dark') return true;
+    if (escolhido === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 }
 
 export function aplicarTema() {
@@ -39,7 +44,7 @@ export function aplicarTema() {
         document.documentElement.setAttribute('data-theme', 'light');
     }
     // Sem preferencia salva: nao define o atributo, e o CSS decide sozinho
-    // (por enquanto sempre claro, ja que nao ha regra @media aqui).
+    // pela preferencia do sistema operacional (@media prefers-color-scheme).
 }
 
 export function alternarTema() {

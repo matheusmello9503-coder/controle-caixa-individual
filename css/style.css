@@ -6,7 +6,7 @@
     --azul-claro2: #dbe6f8;
     --cinza-borda: #e1e5ee;
     --cinza-texto: #5b6478;
-    --cinza-texto-suave: #8892a6;
+    --cinza-texto-suave: #636d83; /* 4,5:1 ou mais sobre branco, fundo e azul claro (antes #8892a6 = 3,1:1) */
     --verde-ok: #1c8a4b;
     --verde-bg: #e4f6ea;
     --vermelho-alerta: #c0362c;
@@ -26,7 +26,7 @@
     --sidebar-grad-inicio: var(--azul-escuro);
     --sidebar-grad-fim: #0e1f47;
     --sidebar-link-texto: #aebbdb;
-    --sidebar-secao-texto: #6d7db3;
+    --sidebar-secao-texto: #8d9bcf;
     --sidebar-rodape-texto: #7c8ab8;
 
     /* Texto do cabecalho de tabela e titulos de painel: precisa continuar
@@ -89,7 +89,7 @@
     --sidebar-grad-inicio: #0a1024;
     --sidebar-grad-fim: #05070f;
     --sidebar-link-texto: #9aa6c8;
-    --sidebar-secao-texto: #6b76a0;
+    --sidebar-secao-texto: #8a95bd;
     --sidebar-rodape-texto: #6b76a0;
 
     --tabela-cabecalho-texto: #cfe0ff;
@@ -100,6 +100,46 @@
     --acento-texto: #6ea0f2;
     --perigo-fundo: #b53a30;
     --perigo-fundo-hover: #96291f;
+}
+
+/* Sem escolha manual salva (nem "light" nem "dark" no <html>), segue a
+   preferencia do sistema operacional. Mesmos valores do bloco acima. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --azul-cerdil: #2f5bb0;
+        --azul-escuro: #17335e;
+        --azul-vivo: #4b7bd6;
+        --azul-claro: #1c2947;
+        --azul-claro2: #24325a;
+        --cinza-borda: #2c3550;
+        --cinza-texto: #b7bfd6;
+        --cinza-texto-suave: #8791ac;
+        --verde-ok: #4ecb85;
+        --verde-bg: #163527;
+        --vermelho-alerta: #ef6b62;
+        --vermelho-bg: #3a2027;
+        --laranja-pendente: #e0a542;
+        --laranja-bg: #3a2e18;
+        --fundo: #0f1526;
+        --branco: #161d34;
+        --texto-principal: #e7eaf5;
+        --sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+
+        --sidebar-grad-inicio: #0a1024;
+        --sidebar-grad-fim: #05070f;
+        --sidebar-link-texto: #9aa6c8;
+        --sidebar-secao-texto: #8a95bd;
+        --sidebar-rodape-texto: #6b76a0;
+
+        --tabela-cabecalho-texto: #cfe0ff;
+        --tabela-cabecalho-hover: #2c3d63;
+        --tabela-linha-hover: #1b2440;
+        --linha-pendente-fundo: #3a3218;
+        --linha-exame-fundo: #1b2440;
+        --acento-texto: #6ea0f2;
+        --perigo-fundo: #b53a30;
+        --perigo-fundo-hover: #96291f;
+    }
 }
 
 * { box-sizing: border-box; }
@@ -550,7 +590,6 @@ h1, h2, h3 { font-family: inherit; }
 
 @media (max-width: 880px) {
     .app-shell { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
 }
 
 /* =====================================================
@@ -838,6 +877,82 @@ tbody tr:last-child td { border-bottom: none; }
 .legenda-cor.aberto { background: var(--azul-vivo); }
 .legenda-cor.fechado { background: var(--verde-ok); }
 
+/* !important: alguns formularios (recepcao.html) definem as colunas direto no
+   atributo style, que de outra forma venceria esta regra e deixaria a linha
+   mais larga que a tela no celular. */
 @media (max-width: 900px) {
-    .form-linha { grid-template-columns: 1fr 1fr; }
+    .form-linha { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 520px) {
+    .form-linha { grid-template-columns: 1fr !important; }
+}
+/* Coluna principal ao lado da sidebar: sem isto, conteudo largo estica a pagina. */
+.app-shell > div { min-width: 0; }
+
+/* =====================================================
+   FOCO VISIVEL (navegacao por teclado)
+   ===================================================== */
+.botao:focus-visible, .sidebar-link:focus-visible, .nav-rapida-toggle:focus-visible,
+.nav-rapida-item:focus-visible, .aba-item:focus-visible, .periodo-botao:focus-visible,
+.interruptor-tema:focus-visible, .ajuda-toggle:focus-visible, .menu-mobile-botao:focus-visible,
+a:focus-visible, th.th-ordenavel:focus-visible {
+    outline: 2px solid var(--azul-vivo);
+    outline-offset: 2px;
+}
+.sidebar .sidebar-link:focus-visible { outline-color: #cfe0ff; outline-offset: -2px; }
+
+/* =====================================================
+   MENU NO CELULAR / TABLET EM PE (sidebar vira gaveta)
+   Abaixo de 880px a sidebar some da tela; sem isto, admin e supervisor
+   ficariam sem acesso as abas (Conferencia, Historico, Auditoria, Usuarios).
+   O botao e o fundo escuro sao criados por js/nav-rapida.js.
+   ===================================================== */
+.menu-mobile-botao {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px; height: 40px;
+    margin-right: 10px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 9px;
+    background: var(--branco);
+    color: var(--tabela-cabecalho-texto);
+    font-size: 1.2rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.menu-mobile-fundo { display: none; }
+
+@media (max-width: 880px) {
+    .menu-mobile-botao { display: inline-flex; }
+    .topbar-titulo { flex: 1; min-width: 0; }
+    .sidebar {
+        display: flex;
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        width: min(82vw, 300px);
+        height: 100dvh;
+        z-index: 60;
+        transform: translateX(-105%);
+        transition: transform 0.2s ease;
+        overflow-y: auto;
+    }
+    .app-shell.menu-aberto .sidebar { transform: translateX(0); box-shadow: 8px 0 32px rgba(0, 0, 0, 0.35); }
+    .app-shell.menu-aberto .menu-mobile-fundo {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 16, 36, 0.55);
+        z-index: 55;
+    }
+}
+@media (max-width: 560px) {
+    .usuario-nome, .nav-rapida-toggle .seta { display: none; }
+    .nav-rapida-toggle { padding: 4px; }
+    .topbar-titulo .sub { display: none; }
+    .topbar-titulo { font-size: 0.98rem; }
+    .painel { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
 }

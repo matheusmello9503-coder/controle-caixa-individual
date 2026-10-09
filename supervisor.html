@@ -24,6 +24,7 @@
         <nav class="sidebar-nav">
             <button class="sidebar-link ativo" data-aba="fechamento"><span class="icone">&#128202;</span> Confer&ecirc;ncia de caixa</button>
             <button class="sidebar-link" data-aba="historico"><span class="icone">&#128200;</span> Hist&oacute;rico</button>
+            <div class="sidebar-secao">Controle</div>
             <button class="sidebar-link" data-aba="auditoria"><span class="icone">&#128269;</span> Auditoria</button>
             <div class="sidebar-secao">Recep&ccedil;&atilde;o</div>
             <a href="recepcao.html" class="sidebar-link"><span class="icone">&#128203;</span> Lan&ccedil;ar atendimento</a>
@@ -49,7 +50,7 @@
             <div id="abaFechamento">
                 <div class="linha-toolbar">
                     <div class="campo" style="margin-bottom:0">
-                        <label>Data</label>
+                        <label for="dataSelecionada">Data</label>
                         <input type="date" id="dataSelecionada">
                     </div>
                     <span class="status-fechamento aberto" id="statusFechamento">Aberto</span>
@@ -61,7 +62,7 @@
                     <h2>Pend&ecirc;ncias (sem t&iacute;tulo ou sem tesouraria)</h2>
                     <div class="tabela-scroll">
                         <table>
-                            <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>Titulo</th><th>Tesouraria</th></tr></thead>
+                            <thead><tr><th>Atendente</th><th>Paciente</th><th>Exame</th><th>Valor</th><th>Pagamento</th><th>T&iacute;tulo</th><th>Tesouraria</th></tr></thead>
                             <tbody id="corpoPendencias"></tbody>
                         </table>
                     </div>
@@ -110,9 +111,9 @@
                     <div class="mensagem-ok" id="msgOk"></div>
                     <div class="erro" id="msgErro"></div>
                     <div class="form-linha" style="grid-template-columns: 1fr 2fr 1fr auto auto;">
-                        <div class="campo"><label>Despesas (R$)</label><input type="number" id="despesas" step="0.01" min="0"></div>
-                        <div class="campo"><label>Observa&ccedil;&atilde;o das despesas</label><input type="text" id="despesas_obs"></div>
-                        <div class="campo"><label>Dep&oacute;sito (R$)</label><input type="number" id="deposito" step="0.01" min="0"></div>
+                        <div class="campo"><label for="despesas">Despesas (R$)</label><input type="number" id="despesas" step="0.01" min="0"></div>
+                        <div class="campo"><label for="despesas_obs">Observa&ccedil;&atilde;o das despesas</label><input type="text" id="despesas_obs"></div>
+                        <div class="campo"><label for="deposito">Dep&oacute;sito (R$)</label><input type="number" id="deposito" step="0.01" min="0"></div>
                         <button class="botao secundario" id="btnSalvarFechamento">Salvar</button>
                         <button class="botao" id="btnFecharCaixa">Fechar caixa do dia</button>
                     </div>
@@ -120,7 +121,7 @@
                         O Dep&oacute;sito j&aacute; vem preenchido automaticamente (Esp&eacute;cie sem contar o Pix) - confira e ajuste se precisar antes de salvar.
                     </p>
                     <div class="campo" style="margin-top:4px">
-                        <label>Observacoes gerais</label>
+                        <label for="observacoes">Observa&ccedil;&otilde;es gerais</label>
                         <textarea id="observacoes" rows="2"></textarea>
                     </div>
                     <p class="texto-apoio" style="margin-top:10px">
@@ -193,15 +194,15 @@
 </div>
 
 <div class="modal-overlay" id="modalEditarLancamento" style="display:none">
-    <div class="modal-caixa">
+    <div class="modal-caixa" role="dialog" aria-modal="true">
         <h2 style="margin-top:0">Editar lan&ccedil;amento</h2>
         <p class="texto-apoio">Como supervisor, voc&ecirc; pode editar este lan&ccedil;amento de qualquer atendente, em qualquer data.</p>
         <div class="erro" id="msgErroModal"></div>
         <form id="formEditarLancamento">
             <div class="form-linha" style="grid-template-columns: 1fr 1fr;">
-                <div class="campo"><label>Paciente</label><input type="text" id="editNomePaciente" required></div>
+                <div class="campo"><label for="editNomePaciente">Paciente</label><input type="text" id="editNomePaciente" required></div>
                 <div class="campo">
-                    <label>Exame</label>
+                    <label for="editExame">Exame</label>
                     <select id="editExame" required>
                         <option value="RM">RM</option>
                         <option value="TC">TC</option>
@@ -214,9 +215,9 @@
                 </div>
             </div>
             <div class="form-linha" style="grid-template-columns: 1fr 1fr; margin-top:10px">
-                <div class="campo"><label>Valor (R$)</label><input type="number" id="editValor" step="0.01" min="0" required></div>
+                <div class="campo"><label for="editValor">Valor (R$)</label><input type="number" id="editValor" step="0.01" min="0" required></div>
                 <div class="campo">
-                    <label>Pagamento</label>
+                    <label for="editFormaPagamento">Pagamento</label>
                     <select id="editFormaPagamento" required>
                         <option value="Debito">D&eacute;bito</option>
                         <option value="Credito">Cr&eacute;dito</option>
@@ -226,8 +227,8 @@
                 </div>
             </div>
             <div class="form-linha" style="grid-template-columns: 1fr 1fr auto; margin-top:10px; align-items:end">
-                <div class="campo"><label>T&iacute;tulo</label><input type="text" id="editTitulo"></div>
-                <div class="campo"><label>N&ordm; NF</label><input type="text" id="editNumeroNf"></div>
+                <div class="campo"><label for="editTitulo">T&iacute;tulo</label><input type="text" id="editTitulo"></div>
+                <div class="campo"><label for="editNumeroNf">N&ordm; NF</label><input type="text" id="editNumeroNf"></div>
                 <div class="check-linha"><input type="checkbox" id="editTesouraria"><label for="editTesouraria">Tesouraria feita</label></div>
             </div>
             <div style="display:flex; gap:10px; margin-top:18px">
@@ -239,14 +240,14 @@
 </div>
 
 <div class="modal-overlay" id="modalExportarPlanilha" style="display:none">
-    <div class="modal-caixa" style="max-width:420px">
+    <div class="modal-caixa" role="dialog" aria-modal="true" style="max-width:420px">
         <h2 style="margin-top:0">Exportar planilha</h2>
         <p class="texto-apoio">Escolha o per&iacute;odo que voc&ecirc; quer exportar. Todos os lan&ccedil;amentos desse intervalo v&atilde;o para uma &uacute;nica planilha, com um resumo do per&iacute;odo inteiro.</p>
         <div class="erro" id="msgErroExportar"></div>
         <form id="formExportarPlanilha">
             <div class="form-linha" style="grid-template-columns: 1fr 1fr;">
-                <div class="campo"><label>De</label><input type="date" id="exportarDataInicio" required></div>
-                <div class="campo"><label>At&eacute;</label><input type="date" id="exportarDataFim" required></div>
+                <div class="campo"><label for="exportarDataInicio">De</label><input type="date" id="exportarDataInicio" required></div>
+                <div class="campo"><label for="exportarDataFim">At&eacute;</label><input type="date" id="exportarDataFim" required></div>
             </div>
             <div style="display:flex; gap:10px; margin-top:18px">
                 <button type="submit" class="botao" id="btnConfirmarExportar">Gerar planilha (.xlsx)</button>

@@ -35,8 +35,47 @@ function iniciaisNome(nome) {
     return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
 }
 
+// Menu lateral como "gaveta" em telas pequenas (celular, tablet em pe): la a
+// sidebar fica escondida por padrao (ver css/style.css), e este botao no
+// topbar a abre por cima da tela. Sem isso, admin e supervisor perderiam o
+// acesso as abas. Em telas grandes o botao nem aparece (CSS).
+function montarMenuMobile() {
+    const shell = document.querySelector('.app-shell');
+    const sidebar = document.querySelector('.sidebar');
+    const topbar = document.querySelector('.topbar');
+    if (!shell || !sidebar || !topbar || document.getElementById('menuMobileBotao')) return;
+
+    sidebar.id = sidebar.id || 'sidebarPrincipal';
+
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.id = 'menuMobileBotao';
+    botao.className = 'menu-mobile-botao';
+    botao.setAttribute('aria-label', 'Abrir menu de navegação');
+    botao.setAttribute('aria-controls', sidebar.id);
+    botao.setAttribute('aria-expanded', 'false');
+    botao.innerHTML = '&#9776;';
+    topbar.insertBefore(botao, topbar.firstChild);
+
+    const fundo = document.createElement('div');
+    fundo.className = 'menu-mobile-fundo';
+    shell.appendChild(fundo);
+
+    function definir(aberto) {
+        shell.classList.toggle('menu-aberto', aberto);
+        botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+        botao.setAttribute('aria-label', aberto ? 'Fechar menu de navegação' : 'Abrir menu de navegação');
+    }
+    botao.addEventListener('click', () => definir(!shell.classList.contains('menu-aberto')));
+    fundo.addEventListener('click', () => definir(false));
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') definir(false); });
+    // Escolher uma aba (ou ir para outra tela) fecha a gaveta.
+    sidebar.querySelectorAll('.sidebar-link').forEach(el => el.addEventListener('click', () => definir(false)));
+}
+
 export function montarNavRapida({ perfil, nome, paginaAtual }) {
     aplicarTema();
+    montarMenuMobile();
 
     const alvo = document.getElementById('navRapida');
     if (!alvo) return;
@@ -133,9 +172,9 @@ function montarModalAlterarSenha() {
                 <div class="erro" id="msgErroSenha"></div>
                 <div class="mensagem-ok" id="msgOkSenha"></div>
                 <form id="formAlterarSenha">
-                    <div class="campo"><label>Senha atual</label><input type="password" id="senhaAtual" required></div>
-                    <div class="campo"><label>Nova senha</label><input type="password" id="senhaNova" required minlength="6"></div>
-                    <div class="campo"><label>Confirmar nova senha</label><input type="password" id="senhaNovaConfirmar" required minlength="6"></div>
+                    <div class="campo"><label for="senhaAtual">Senha atual</label><input type="password" id="senhaAtual" required></div>
+                    <div class="campo"><label for="senhaNova">Nova senha</label><input type="password" id="senhaNova" required minlength="6"></div>
+                    <div class="campo"><label for="senhaNovaConfirmar">Confirmar nova senha</label><input type="password" id="senhaNovaConfirmar" required minlength="6"></div>
                     <div style="display:flex; gap:10px; margin-top:18px">
                         <button type="submit" class="botao">Salvar nova senha</button>
                         <button type="button" class="botao secundario" id="btnCancelarAlterarSenha">Cancelar</button>

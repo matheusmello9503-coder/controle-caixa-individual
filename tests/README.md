@@ -75,7 +75,14 @@ O resultado fica em `tests/harness/` (gerado, não deve ser editado à mão —
 - **Recepção** (`recepcao.html`): cada atendente só vê os próprios
   lançamentos; um dia fora da janela de 3 dias fica somente para consulta
   (sem botão de editar); editar um exame próprio grava auditoria com a
-  autoria correta.
+  autoria correta; a forma de pagamento começa em branco e o lançamento não
+  salva sem escolher; o total do atendimento aparece ao vivo.
+- **Fechamento** (admin e supervisor): despesas digitadas entram no Total
+  líquido e abatem o depósito sugerido (além dos testes puros de
+  `totalLiquido`, `sugerirDeposito` e `rotuloForma`).
+- **Interface**: menu em gaveta no celular, nenhuma tela com rolagem
+  horizontal em 390px, tema escuro/claro seguindo o sistema, contraste mínimo
+  de 4,5:1 do texto secundário e rótulos de formulário ligados aos campos.
 
 ## Manutenção
 

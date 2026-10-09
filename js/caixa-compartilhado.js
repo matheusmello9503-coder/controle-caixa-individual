@@ -27,6 +27,22 @@ export function hojeInputStr(fusoHorario) {
     return `${mapa.year}-${mapa.month}-${mapa.day}`;
 }
 
+// ---------- Acessibilidade: rotulo ligado ao campo ----------
+// Linhas repetidas (varios exames, varias formas de pagamento) vem de um
+// <template>, entao nao podem ter id fixo no HTML. Esta funcao da um id unico
+// a cada campo e liga o <label> a ele (for/id) - sem isso, leitor de tela nao
+// diz qual e o campo e clicar no texto do rotulo nao foca o campo.
+let contadorRotulos = 0;
+export function ligarRotulos(raiz) {
+    raiz.querySelectorAll('.campo').forEach(campo => {
+        const rotulo = campo.querySelector('label');
+        const controle = campo.querySelector('input, select, textarea');
+        if (!rotulo || !controle || rotulo.htmlFor) return;
+        if (!controle.id) controle.id = `campo-auto-${++contadorRotulos}`;
+        rotulo.htmlFor = controle.id;
+    });
+}
+
 // ---------- Mensagens de tela (erro/sucesso) ----------
 // Recebe o id do elemento (cada tela ja tem sua propria div de mensagem no
 // HTML) - assim a funcao continua generica, sem precisar saber qual tela a
@@ -91,6 +107,29 @@ export function calcularResumo(lista) {
 }
 
 // ---------- Agrupamento de exames do mesmo atendimento (grupoId) ----------
+// Os valores gravados no banco ficam SEM acento ('Debito', 'Especie') - as
+// regras do Firestore dependem exatamente dessas 4 palavras. So o que a
+// pessoa le na tela ganha acento.
+const ROTULOS_FORMA = { Debito: 'Débito', Credito: 'Crédito', Especie: 'Espécie', Pix: 'Pix' };
+export function rotuloForma(forma) {
+    return ROTULOS_FORMA[forma] || forma || '';
+}
+
+// ---------- Despesas do dia ----------
+// Total Geral e o que entrou (todos os lancamentos). O "Total liquido" e o
+// que sobra depois das despesas pagas no dia - era isso que faltava: o campo
+// Despesas era so gravado, nunca entrava em conta nenhuma.
+export function totalLiquido(totalGeral, despesas) {
+    return (totalGeral || 0) - (despesas || 0);
+}
+
+// Deposito sugerido: as despesas do dia sao pagas com o dinheiro do caixa,
+// entao saem da Especie pura (sem Pix) antes de depositar. Nunca sugere
+// valor negativo (despesa maior que o dinheiro em caixa).
+export function sugerirDeposito(especiePura, despesas) {
+    return Math.max(0, (especiePura || 0) - (despesas || 0));
+}
+
 export function totaisPorGrupo(lista) {
     const somaPorGrupo = {};
     const qtdPorGrupo = {};

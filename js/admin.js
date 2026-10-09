@@ -8,7 +8,7 @@ import { montarNavRapida } from "./nav-rapida.js";
 import { carregarHistorico, renderizarHistorico } from "./historico.js";
 import {
     formatarMoeda, hojeInputStr, mostrarErro, mostrarOk,
-    calcularResumo, totaisPorGrupo, ordenarLista,
+    rotuloForma, calcularResumo, totalLiquido, sugerirDeposito, totaisPorGrupo, ordenarLista,
     gerarArquivoPlanilha, registrarAuditoria
 } from "./caixa-compartilhado.js";
 
@@ -166,12 +166,15 @@ function renderizarResumo() {
     const grade = document.getElementById('grade-resumo');
     grade.innerHTML = `
         ${cartaoResumo('Total Geral', totalGeral, listaDoDia.length, true)}
+        <div class="grupo-rotulo">Fechamento do dia</div>
+        ${cartaoResumo('Despesas', despesasDoDia())}
+        ${cartaoResumo('Total líquido (após despesas)', totalLiquido(totalGeral, despesasDoDia()))}
         <div class="grupo-rotulo">Por forma de pagamento</div>
-        ${cartaoResumo('Debito', mapaFormas.Debito.total, mapaFormas.Debito.qtd)}
-        ${cartaoResumo('Credito', mapaFormas.Credito.total, mapaFormas.Credito.qtd)}
-        ${cartaoResumo('Especie (+ Pix)', especieComPix, especieComPixQtd)}
+        ${cartaoResumo('Débito', mapaFormas.Debito.total, mapaFormas.Debito.qtd)}
+        ${cartaoResumo('Crédito', mapaFormas.Credito.total, mapaFormas.Credito.qtd)}
+        ${cartaoResumo('Espécie (+ Pix)', especieComPix, especieComPixQtd)}
         ${cartaoResumo('Pix', mapaFormas.Pix.total, mapaFormas.Pix.qtd)}
-        ${cartaoResumo('Total Cartao', totalCartao)}
+        ${cartaoResumo('Total cartão', totalCartao)}
     `;
 
     atualizarSugestaoDeposito();
@@ -181,11 +184,11 @@ function renderizarResumo() {
         ? pendencias.map(l => `
             <tr class="linha-pendente">
                 <td>${l.usuarioNome}</td><td>${l.nomePaciente}</td><td>${l.exame}</td>
-                <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}</td>
+                <td>${formatarMoeda(l.valor)}</td><td>${rotuloForma(l.formaPagamento)}</td>
                 <td>${l.titulo || '<span class="selo pendente">Sem t&iacute;tulo</span>'}</td>
                 <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
             </tr>`).join('')
-        : '<tr><td colspan="7" style="color:var(--cinza-texto)">Nenhuma pendencia.</td></tr>';
+        : '<tr><td colspan="7" style="color:var(--cinza-texto)">Nenhuma pendência.</td></tr>';
 
     document.getElementById('corpoAtendentes').innerHTML = Object.entries(porAtendente).map(([nome, v]) => `
         <tr><td>${nome}</td><td>${v.qtd}</td><td>${formatarMoeda(v.total)}</td></tr>
@@ -228,7 +231,7 @@ function renderizarTabelaTodos() {
         const linha = `
         <tr class="${(!l.titulo || !l.tesouraria) ? 'linha-pendente' : ''} ${mesmoGrupo ? 'linha-mesmo-grupo' : 'linha-inicio-grupo'}">
             <td>${l.usuarioNome}</td><td>${mesmoGrupo ? '&#8618;' : l.nomePaciente}</td><td>${l.exame}</td>
-            <td>${formatarMoeda(l.valor)}</td><td>${l.formaPagamento}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
+            <td>${formatarMoeda(l.valor)}</td><td>${rotuloForma(l.formaPagamento)}${l.pagamentoDividido ? ' <span class="selo" style="font-size:10px">dividido</span>' : ''}</td>
             <td>${l.titulo || '-'}</td><td>${l.numeroNf || '-'}</td>
             <td>${l.tesouraria ? '<span class="selo ok">Feita</span>' : '<span class="selo pendente">Pendente</span>'}</td>
             <td>
@@ -452,9 +455,18 @@ function cartaoResumo(rotulo, valor, quantidade, destaque = false) {
 // valor salvo (mesmo que seja zero), ou o dia estiver fechado, o sistema
 // nunca mais sobrescreve sozinho - quem fecha o caixa sempre pode ajustar
 // manualmente antes de salvar/fechar.
+// Valor digitado no campo Despesas (0 se vazio ou invalido). Le direto da
+// tela para o resumo e a sugestao de Deposito reagirem enquanto se digita.
+function despesasDoDia() {
+    const v = parseFloat(document.getElementById('despesas').value);
+    return isNaN(v) || v < 0 ? 0 : v;
+}
+
+document.getElementById('despesas').addEventListener('input', renderizarResumo);
+
 function atualizarSugestaoDeposito() {
     if (depositoJaSalvo || caixaDoDiaFechado) return;
-    document.getElementById('deposito').value = ultimoTotalEspeciePura.toFixed(2);
+    document.getElementById('deposito').value = sugerirDeposito(ultimoTotalEspeciePura, despesasDoDia()).toFixed(2);
 }
 
 async function carregarFechamento() {
@@ -465,6 +477,7 @@ async function carregarFechamento() {
 
     document.getElementById('despesas').value = fechamento.despesas || '';
     document.getElementById('despesas_obs').value = fechamento.despesasObs || '';
+    renderizarResumo();
     document.getElementById('observacoes').value = fechamento.observacoes || '';
 
     const status = fechamento.status || 'aberto';
